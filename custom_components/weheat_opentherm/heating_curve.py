@@ -18,9 +18,15 @@ def calculate_heating_curve(
     Returns:
         Berekende aanvoertemperatuur in °C.
     """
+    if not curve_points:
+        return 30.0  # Veilige terugvalwaarde als er geen punten zijn
+
     sorted_points = sorted(curve_points, key=lambda p: p[0])
     outdoor_temps = [p[0] for p in sorted_points]
     flow_temps = [p[1] for p in sorted_points]
+
+    if len(sorted_points) == 1:
+        return flow_temps[0]
 
     if outdoor_temp <= outdoor_temps[0]:
         return flow_temps[0]

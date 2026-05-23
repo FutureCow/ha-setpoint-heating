@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_CURVE_POINTS,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_MAX_PRICE_CORRECTION,
+    DEFAULT_SETPOINT_ENTITY,
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
@@ -78,7 +79,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         room_sensor: str = data[CONF_ROOM_TEMP_SENSOR]
         weather_entity: str | None = data.get(CONF_WEATHER_ENTITY)
         price_sensor: str | None = data.get(CONF_PRICE_SENSOR)
-        setpoint_entity: str = data.get(CONF_SETPOINT_ENTITY, "input_number.ot_setpoint")
+        setpoint_entity: str = data.get(CONF_SETPOINT_ENTITY, DEFAULT_SETPOINT_ENTITY)
 
         outdoor_temp = self._read_sensor(outdoor_sensor)
         room_temp = self._read_sensor(room_sensor)
