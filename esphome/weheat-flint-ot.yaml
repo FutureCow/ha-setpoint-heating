@@ -53,14 +53,34 @@ opentherm:
 
 # ─── Sensors ─────────────────────────────────────────────────────────────────
 sensor:
-  # Aanvoersetpoint, berekend door de HA weheat_opentherm integratie.
+  # Aanvoersetpoint, ontvangen van de HA weheat_opentherm integratie.
+  # name: zorgt dat de ontvangen waarde ook als HA-entity zichtbaar wordt
+  # (handig om te verifiëren dat de ESP echt waarden binnen krijgt).
   # filter_out: nan zorgt dat het laatste geldige setpoint behouden blijft
   # als de verbinding met HA tijdelijk wegvalt.
   - platform: homeassistant
     id: stooklijn_setpoint
+    name: "Aanvoersetpoint (ontvangen van HA)"
     entity_id: sensor.weheat_opentherm_aanvoersetpoint
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
     filters:
       - filter_out: nan
+
+  # Wat de ESP daadwerkelijk naar de OpenTherm-bus stuurt als t_set.
+  # Zou identiek moeten zijn aan stooklijn_setpoint; verschilt alleen als
+  # filter_out een NaN wegfiltert (dan blijft de laatste geldige waarde staan).
+  - platform: template
+    name: "Aanvoersetpoint (naar boiler)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      return id(stooklijn_setpoint).state;
 
   # Kamertemperatuur (voor weergave/logging)
   - platform: homeassistant
