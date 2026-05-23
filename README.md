@@ -237,9 +237,15 @@ Gebruik deze als `outdoor_temp_sensor` in de integratie-setup.
 
 De integratie leest automatisch een lijst uursrijzen uit de sensor-attributen. Ondersteund:
 - **EPEX Spot** (via `sensor.epex_spot_data_net.prices_today`)
-- **Tibber** (via `forecast`)
+- **Tibber** (via `forecast` → `total`)
 - **Nordpool** (via `raw_today` / `raw_tomorrow`)
-- Elke sensor met een attribuut `forecast`, `prices_today`, `prices_tomorrow`, `hourly_prices`, of `raw_today` met lijst van floats of `{value/price/total}`-dicts
+- **Zonneplan** (via `forecast` → `electricity_price`, met automatische schaalcorrectie omdat Zonneplan integers × 1e7 opslaat)
+- Elke sensor met een attribuut `forecast`, `prices_today`, `prices_tomorrow`, `hourly_prices`, of `raw_today` met lijst van floats of `{value/price/total/electricity_price}`-dicts
+
+Sinds v1.3.1 detecteert de integratie automatisch een schaalverschil (>10×) tussen
+de huidige state en de forecast-waarden en normaliseert de forecast naar de
+state-eenheid. Hiermee werken sensoren die hun forecast in een andere unit dan de
+state opslaan (zoals Zonneplan) zonder extra configuratie.
 
 ### Wat als ESPHome geen verbinding heeft met HA?
 

@@ -97,6 +97,34 @@ def calculate_price_correction(
     return round(max(-max_correction, min(max_correction, correction)), 2)
 
 
+def _normalize_to_state_scale(
+    current_price: float, prices: list[float]
+) -> list[float]:
+    """Schaal forecast-prijzen naar de eenheid van de huidige state.
+
+    Sommige integraties (bv. Zonneplan) bewaren forecast-waarden in een
+    andere eenheid (bv. integer × 1e7) dan de state. We detecteren dit door
+    de mediaan met de state te vergelijken; bij >10× verschil schalen we
+    uniform zodat de σ-vergelijking weer klopt.
+    """
+    if current_price <= 0 or len(prices) < 2:
+        return prices
+    median_p = statistics.median(prices)
+    if median_p <= 0:
+        return prices
+    ratio = median_p / current_price
+    if 0.1 <= ratio <= 10:
+        return prices  # Zelfde schaal, geen normalisatie nodig
+    scale = current_price / median_p
+    _LOGGER.debug(
+        "Prijs-forecast geschaald met factor %.2e (median %.4g → %.4g)",
+        scale,
+        median_p,
+        median_p * scale,
+    )
+    return [p * scale for p in prices]
+
+
 async def async_get_price_data(
     hass: HomeAssistant,
     price_sensor: str,
@@ -120,5 +148,7 @@ async def async_get_price_data(
     all_prices = _extract_prices(state.attributes)
     if not all_prices:
         all_prices = [current_price]
+    else:
+        all_prices = _normalize_to_state_scale(current_price, all_prices)
 
     return current_price, all_prices
