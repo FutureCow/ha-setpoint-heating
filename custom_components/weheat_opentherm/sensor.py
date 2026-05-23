@@ -1,7 +1,7 @@
 """Diagnostische sensoren voor elke correctieterm en het eindresultaat."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,

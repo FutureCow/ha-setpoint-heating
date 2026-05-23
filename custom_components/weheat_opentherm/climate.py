@@ -1,7 +1,6 @@
 """Climate-entiteit voor het instellen van de gewenste kamertemperatuur."""
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.climate import (
@@ -24,8 +23,6 @@ from .const import (
 )
 from .coordinator import WeheatCoordinator
 
-_LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -46,7 +43,8 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "thermostat"
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+    _attr_hvac_modes = [HVACMode.HEAT]
+    _attr_hvac_mode = HVACMode.HEAT
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
@@ -58,7 +56,6 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_climate"
-        self._attr_hvac_mode = HVACMode.HEAT
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name="WeHeat OpenTherm",
@@ -88,6 +85,4 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Sla de HVAC-modus op."""
-        self._attr_hvac_mode = hvac_mode
-        self.async_write_ha_state()
+        """Enige ondersteunde modus is HEAT; wijzigingen worden genegeerd."""

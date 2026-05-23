@@ -175,10 +175,15 @@ class WeheatOptionsFlow(OptionsFlow):
             self._pending[CONF_CURVE_POINTS] = curve
             return self.async_create_entry(title="", data=self._pending)
 
-        stored = self.config_entry.options.get(CONF_CURVE_POINTS, DEFAULT_CURVE_POINTS)
+        raw = self.config_entry.options.get(CONF_CURVE_POINTS, DEFAULT_CURVE_POINTS)
+        # Zorg altijd voor precies 5 punten; vul op met defaults als nodig
+        stored = [
+            raw[i] if i < len(raw) else DEFAULT_CURVE_POINTS[i]
+            for i in range(5)
+        ]
 
         fields: dict[Any, Any] = {}
-        for i, point in enumerate(stored[:5], start=1):
+        for i, point in enumerate(stored, start=1):
             fields[
                 vol.Required(f"p{i}_outdoor", default=float(point[0]))
             ] = selector.NumberSelector(
