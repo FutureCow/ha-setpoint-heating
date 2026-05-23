@@ -13,6 +13,7 @@ from .const import (
     CONF_COMPENSATION_FACTOR,
     CONF_CURVE_POINTS,
     CONF_FORECAST_HOURS,
+    CONF_LEARNING_RATE,
     CONF_MAX_PRICE_CORRECTION,
     CONF_OUTDOOR_TEMP_SENSOR,
     CONF_PRICE_SENSOR,
@@ -25,12 +26,14 @@ from .const import (
     DEFAULT_COMPENSATION_FACTOR,
     DEFAULT_CURVE_POINTS,
     DEFAULT_FORECAST_HOURS,
+    DEFAULT_LEARNING_RATE,
     DEFAULT_MAX_PRICE_CORRECTION,
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
     DOMAIN,
     KEY_CURRENT_PRICE,
+    KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
     KEY_ROOM_TEMP,
     KEY_T_DEFINITIEF,
@@ -42,6 +45,7 @@ from .const import (
 )
 from .energy_prices import async_get_price_data, calculate_price_correction
 from .heating_curve import calculate_heating_curve, calculate_room_compensation
+from .learning import LearningEngine
 from .weather_module import async_get_forecast_corrections
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,6 +64,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=_SCAN_INTERVAL,
         )
         self._entry = entry
+        self.learning = LearningEngine(hass, entry.entry_id)
 
     @property
     def entry(self) -> ConfigEntry:
@@ -96,9 +101,12 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         forecast_hours: int = int(self._opt(CONF_FORECAST_HOURS, DEFAULT_FORECAST_HOURS))
         max_price_corr: float = self._opt(CONF_MAX_PRICE_CORRECTION, DEFAULT_MAX_PRICE_CORRECTION)
         curve_points: list[list[float]] = self._opt(CONF_CURVE_POINTS, DEFAULT_CURVE_POINTS)
+        learning_rate: float = self._opt(CONF_LEARNING_RATE, DEFAULT_LEARNING_RATE)
 
-        # Module 1: Stooklijn + kamercompensatie
-        t_stooklijn = calculate_heating_curve(outdoor_temp, curve_points)
+        # Module 1: Stooklijn (met geleerde offsets) + kamercompensatie
+        await self.learning.async_load()
+        adjusted_curve = self.learning.apply_offsets(curve_points)
+        t_stooklijn = calculate_heating_curve(outdoor_temp, adjusted_curve)
         t_kamer_comp = calculate_room_compensation(target_temp, room_temp, factor)
 
         # Module 2: Weersvoorspelling
@@ -124,6 +132,15 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if setpoint_entity:
             await self._async_write_setpoint(setpoint_entity, t_definitief)
 
+        # Voer leerstap uit (observeren + eens per uur leren)
+        await self.learning.async_tick(
+            outdoor_temp=outdoor_temp,
+            room_temp=room_temp,
+            target_temp=target_temp,
+            curve_points=curve_points,
+            learning_rate=learning_rate,
+        )
+
         return {
             KEY_OUTDOOR_TEMP: outdoor_temp,
             KEY_ROOM_TEMP: room_temp,
@@ -134,6 +151,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             KEY_T_PRIJS: t_prijs,
             KEY_T_DEFINITIEF: t_definitief,
             KEY_CURRENT_PRICE: current_price,
+            KEY_OFFSETS: self.learning.offsets,
         }
 
     def _read_sensor(self, entity_id: str) -> float | None:

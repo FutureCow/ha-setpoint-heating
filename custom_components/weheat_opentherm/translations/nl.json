@@ -77,17 +77,26 @@
       "t_windchill": { "name": "Windchill correctie" },
       "t_zon": { "name": "Zoncorrectie" },
       "t_prijs": { "name": "Prijscorrectie" },
-      "current_price": { "name": "Huidige energieprijs" }
+      "current_price": { "name": "Huidige energieprijs" },
+      "curve_offset_1": { "name": "Stooklijn offset 1 (koudste punt)" },
+      "curve_offset_2": { "name": "Stooklijn offset 2" },
+      "curve_offset_3": { "name": "Stooklijn offset 3" },
+      "curve_offset_4": { "name": "Stooklijn offset 4" },
+      "curve_offset_5": { "name": "Stooklijn offset 5 (warmste punt)" }
     },
     "number": {
       "compensation_factor": { "name": "Kamercompensatiefactor" },
       "t_min": { "name": "Minimale aanvoertemperatuur" },
       "t_max": { "name": "Maximale aanvoertemperatuur" },
       "forecast_hours": { "name": "Vooruitkijkvenster" },
-      "max_price_correction": { "name": "Max prijscorrectie" }
+      "max_price_correction": { "name": "Max prijscorrectie" },
+      "learning_rate": { "name": "Leersnelheid (0 = uit)" }
     },
     "climate": {
       "thermostat": { "name": "Verwarmingsdoelwit" }
+    },
+    "button": {
+      "reset_learning": { "name": "Reset adaptieve stooklijn" }
     }
   }
 }
