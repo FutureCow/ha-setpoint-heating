@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WeHeat OpenTherm instellen",
+        "description": "Selecteer de sensoren en optionele diensten voor de aanvoertemperatuurberekening.",
+        "data": {
+          "room_temp_sensor": "Kamertemperatuursensor",
+          "outdoor_temp_sensor": "Buitentemperatuursensor",
+          "weather_entity": "Weer-entiteit (optioneel)",
+          "price_sensor": "Energieprijssensor (optioneel)",
+          "setpoint_entity": "Setpoint input_number entiteit"
+        },
+        "data_description": {
+          "room_temp_sensor": "Sensor die de huidige kamertemperatuur meet.",
+          "outdoor_temp_sensor": "Sensor die de buitentemperatuur meet.",
+          "weather_entity": "Wordt gebruikt voor windchill- en zoncorrectie.",
+          "price_sensor": "EPEX Spot, Tibber of vergelijkbaar; wordt gebruikt voor prijscorrectie.",
+          "setpoint_entity": "input_number die via ESPHome/OpenTherm naar de warmtepomp wordt gestuurd."
+        }
+      }
+    },
+    "error": {
+      "unknown": "Onverwachte fout opgetreden."
+    },
+    "abort": {
+      "already_configured": "WeHeat OpenTherm is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Temperatuurinstellingen",
+        "description": "Pas de temperatuurlimieten en correctiefactoren aan.",
+        "data": {
+          "target_temp": "Gewenste kamertemperatuur",
+          "t_min": "Minimale aanvoertemperatuur",
+          "t_max": "Maximale aanvoertemperatuur",
+          "compensation_factor": "Kamercompensatiefactor",
+          "forecast_hours": "Vooruitkijkvenster",
+          "max_price_correction": "Maximale prijscorrectie"
+        },
+        "data_description": {
+          "target_temp": "Doeltemperatuur voor de kamercompensatieberekening.",
+          "t_min": "Het berekende setpoint wordt nooit lager dan deze waarde.",
+          "t_max": "Het berekende setpoint wordt nooit hoger dan deze waarde.",
+          "compensation_factor": "Hogere waarde = sterker reageren op temperatuurafwijking (standaard 2,0).",
+          "forecast_hours": "Aantal uren vooruit om windchill en zon te beoordelen (1–6 uur).",
+          "max_price_correction": "Maximale correctie in °C door energieprijzen."
+        }
+      },
+      "curve": {
+        "title": "Stooklijn configureren",
+        "description": "Definieer 5 (buitentemperatuur → aanvoertemperatuur) koppels. De punten worden automatisch gesorteerd op buitentemperatuur.",
+        "data": {
+          "p1_outdoor": "Punt 1 – buitentemperatuur",
+          "p1_flow": "Punt 1 – aanvoertemperatuur",
+          "p2_outdoor": "Punt 2 – buitentemperatuur",
+          "p2_flow": "Punt 2 – aanvoertemperatuur",
+          "p3_outdoor": "Punt 3 – buitentemperatuur",
+          "p3_flow": "Punt 3 – aanvoertemperatuur",
+          "p4_outdoor": "Punt 4 – buitentemperatuur",
+          "p4_flow": "Punt 4 – aanvoertemperatuur",
+          "p5_outdoor": "Punt 5 – buitentemperatuur",
+          "p5_flow": "Punt 5 – aanvoertemperatuur"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "outdoor_temp": { "name": "Buitentemperatuur" },
+      "room_temp": { "name": "Kamertemperatuur" },
+      "t_stooklijn": { "name": "Stooklijn basistemperatuur" },
+      "t_definitief": { "name": "Aanvoersetpoint" },
+      "t_kamer_comp": { "name": "Kamercompensatie" },
+      "t_windchill": { "name": "Windchill correctie" },
+      "t_zon": { "name": "Zoncorrectie" },
+      "t_prijs": { "name": "Prijscorrectie" },
+      "current_price": { "name": "Huidige energieprijs" }
+    },
+    "number": {
+      "compensation_factor": { "name": "Kamercompensatiefactor" },
+      "t_min": { "name": "Minimale aanvoertemperatuur" },
+      "t_max": { "name": "Maximale aanvoertemperatuur" },
+      "forecast_hours": { "name": "Vooruitkijkvenster" },
+      "max_price_correction": { "name": "Max prijscorrectie" }
+    },
+    "climate": {
+      "thermostat": { "name": "Verwarmingsdoelwit" }
+    }
+  }
+}

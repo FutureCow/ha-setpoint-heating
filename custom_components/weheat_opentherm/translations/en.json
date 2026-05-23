@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up WeHeat OpenTherm",
+        "description": "Select the sensors and optional services for supply temperature calculation.",
+        "data": {
+          "room_temp_sensor": "Room temperature sensor",
+          "outdoor_temp_sensor": "Outdoor temperature sensor",
+          "weather_entity": "Weather entity (optional)",
+          "price_sensor": "Energy price sensor (optional)",
+          "setpoint_entity": "Setpoint input_number entity"
+        },
+        "data_description": {
+          "room_temp_sensor": "Sensor measuring the current room temperature.",
+          "outdoor_temp_sensor": "Sensor measuring the outdoor temperature.",
+          "weather_entity": "Used for wind chill and sun corrections.",
+          "price_sensor": "EPEX Spot, Tibber or similar; used for price correction.",
+          "setpoint_entity": "input_number sent via ESPHome/OpenTherm to the heat pump."
+        }
+      }
+    },
+    "error": {
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "WeHeat OpenTherm is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Temperature settings",
+        "description": "Adjust temperature limits and correction factors.",
+        "data": {
+          "target_temp": "Target room temperature",
+          "t_min": "Minimum supply temperature",
+          "t_max": "Maximum supply temperature",
+          "compensation_factor": "Room compensation factor",
+          "forecast_hours": "Look-ahead window",
+          "max_price_correction": "Maximum price correction"
+        },
+        "data_description": {
+          "target_temp": "Target temperature for room compensation calculation.",
+          "t_min": "The calculated setpoint will never go below this value.",
+          "t_max": "The calculated setpoint will never exceed this value.",
+          "compensation_factor": "Higher value = stronger reaction to temperature deviation (default 2.0).",
+          "forecast_hours": "Hours ahead to evaluate wind chill and sun (1–6 hours).",
+          "max_price_correction": "Maximum correction in °C due to energy prices."
+        }
+      },
+      "curve": {
+        "title": "Heating curve configuration",
+        "description": "Define 5 (outdoor temperature → supply temperature) pairs. Points are automatically sorted by outdoor temperature.",
+        "data": {
+          "p1_outdoor": "Point 1 – outdoor temperature",
+          "p1_flow": "Point 1 – supply temperature",
+          "p2_outdoor": "Point 2 – outdoor temperature",
+          "p2_flow": "Point 2 – supply temperature",
+          "p3_outdoor": "Point 3 – outdoor temperature",
+          "p3_flow": "Point 3 – supply temperature",
+          "p4_outdoor": "Point 4 – outdoor temperature",
+          "p4_flow": "Point 4 – supply temperature",
+          "p5_outdoor": "Point 5 – outdoor temperature",
+          "p5_flow": "Point 5 – supply temperature"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "outdoor_temp": { "name": "Outdoor temperature" },
+      "room_temp": { "name": "Room temperature" },
+      "t_stooklijn": { "name": "Heating curve base temperature" },
+      "t_definitief": { "name": "Supply setpoint" },
+      "t_kamer_comp": { "name": "Room compensation" },
+      "t_windchill": { "name": "Wind chill correction" },
+      "t_zon": { "name": "Sun correction" },
+      "t_prijs": { "name": "Price correction" },
+      "current_price": { "name": "Current energy price" }
+    },
+    "number": {
+      "compensation_factor": { "name": "Room compensation factor" },
+      "t_min": { "name": "Minimum supply temperature" },
+      "t_max": { "name": "Maximum supply temperature" },
+      "forecast_hours": { "name": "Look-ahead window" },
+      "max_price_correction": { "name": "Max price correction" }
+    },
+    "climate": {
+      "thermostat": { "name": "Heating target" }
+    }
+  }
+}

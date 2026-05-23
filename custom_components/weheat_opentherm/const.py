@@ -1,0 +1,50 @@
+"""Constants for WeHeat OpenTherm integration."""
+from __future__ import annotations
+
+DOMAIN = "weheat_opentherm"
+PLATFORMS = ["climate", "number", "sensor"]
+
+# Config entry data keys (sensor entity IDs — set at setup)
+CONF_ROOM_TEMP_SENSOR = "room_temp_sensor"
+CONF_OUTDOOR_TEMP_SENSOR = "outdoor_temp_sensor"
+CONF_WEATHER_ENTITY = "weather_entity"
+CONF_PRICE_SENSOR = "price_sensor"
+CONF_SETPOINT_ENTITY = "setpoint_entity"
+
+# Options keys (editable via options flow or number entities)
+CONF_TARGET_TEMP = "target_temp"
+CONF_T_MIN = "t_min"
+CONF_T_MAX = "t_max"
+CONF_COMPENSATION_FACTOR = "compensation_factor"
+CONF_FORECAST_HOURS = "forecast_hours"
+CONF_MAX_PRICE_CORRECTION = "max_price_correction"
+CONF_CURVE_POINTS = "curve_points"
+
+# Default values
+DEFAULT_TARGET_TEMP = 20.0
+DEFAULT_T_MIN = 15.0
+DEFAULT_T_MAX = 45.0
+DEFAULT_COMPENSATION_FACTOR = 2.0
+DEFAULT_FORECAST_HOURS = 3
+DEFAULT_MAX_PRICE_CORRECTION = 3.0
+DEFAULT_SETPOINT_ENTITY = "input_number.ot_setpoint"
+
+# Default heating curve: list of [outdoor_temp, flow_temp] pairs
+DEFAULT_CURVE_POINTS: list[list[float]] = [
+    [-10.0, 37.0],
+    [-5.0, 34.0],
+    [0.0, 29.0],
+    [5.0, 26.0],
+    [15.0, 21.0],
+]
+
+# Keys used in coordinator data dict
+KEY_OUTDOOR_TEMP = "outdoor_temp"
+KEY_ROOM_TEMP = "room_temp"
+KEY_T_STOOKLIJN = "t_stooklijn"
+KEY_T_KAMER_COMP = "t_kamer_comp"
+KEY_T_WINDCHILL = "t_windchill"
+KEY_T_ZON = "t_zon"
+KEY_T_PRIJS = "t_prijs"
+KEY_T_DEFINITIEF = "t_definitief"
+KEY_CURRENT_PRICE = "current_price"
