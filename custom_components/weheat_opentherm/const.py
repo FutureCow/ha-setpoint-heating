@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 DOMAIN = "weheat_opentherm"
-PLATFORMS = ["climate", "number", "sensor"]
+PLATFORMS = ["button", "climate", "number", "sensor"]
 
 # Config entry data keys (sensor entity IDs — set at setup)
 CONF_ROOM_TEMP_SENSOR = "room_temp_sensor"
@@ -19,6 +19,7 @@ CONF_COMPENSATION_FACTOR = "compensation_factor"
 CONF_FORECAST_HOURS = "forecast_hours"
 CONF_MAX_PRICE_CORRECTION = "max_price_correction"
 CONF_CURVE_POINTS = "curve_points"
+CONF_LEARNING_RATE = "learning_rate"
 
 # Default values
 DEFAULT_TARGET_TEMP = 20.0
@@ -28,6 +29,7 @@ DEFAULT_COMPENSATION_FACTOR = 2.0
 DEFAULT_FORECAST_HOURS = 3
 DEFAULT_MAX_PRICE_CORRECTION = 3.0
 DEFAULT_SETPOINT_ENTITY = "input_number.ot_setpoint"
+DEFAULT_LEARNING_RATE = 0.1  # °C per leerstap (1×/uur); 0 = uit
 
 # Default heating curve: list of [outdoor_temp, flow_temp] pairs
 DEFAULT_CURVE_POINTS: list[list[float]] = [
@@ -48,3 +50,4 @@ KEY_T_ZON = "t_zon"
 KEY_T_PRIJS = "t_prijs"
 KEY_T_DEFINITIEF = "t_definitief"
 KEY_CURRENT_PRICE = "current_price"
+KEY_OFFSETS = "curve_offsets"  # list[float] van 5 leer-offsets

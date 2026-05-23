@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     DOMAIN,
     KEY_CURRENT_PRICE,
+    KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
     KEY_ROOM_TEMP,
     KEY_T_DEFINITIEF,
@@ -109,6 +110,23 @@ SENSORS: tuple[WeheatSensorDescription, ...] = (
 )
 
 
+_OFFSET_INDEX_FROM_KEY = {f"curve_offset_{i + 1}": i for i in range(5)}
+
+OFFSET_SENSORS: tuple[WeheatSensorDescription, ...] = tuple(
+    WeheatSensorDescription(
+        key=f"curve_offset_{i + 1}",
+        data_key=KEY_OFFSETS,
+        translation_key=f"curve_offset_{i + 1}",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=2,
+    )
+    for i in range(5)
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -116,9 +134,14 @@ async def async_setup_entry(
 ) -> None:
     """Registreer diagnostische sensoren voor deze config entry."""
     coordinator: WeheatCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
+    entities: list[SensorEntity] = [
         WeheatSensor(coordinator, description, entry) for description in SENSORS
+    ]
+    entities.extend(
+        WeheatOffsetSensor(coordinator, description, entry)
+        for description in OFFSET_SENSORS
     )
+    async_add_entities(entities)
 
 
 class WeheatSensor(CoordinatorEntity[WeheatCoordinator], SensorEntity):
@@ -150,3 +173,20 @@ class WeheatSensor(CoordinatorEntity[WeheatCoordinator], SensorEntity):
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get(self.entity_description.data_key)
+
+
+class WeheatOffsetSensor(WeheatSensor):
+    """Diagnostische sensor voor één geleerde curve-offset (positie 1..5)."""
+
+    @property
+    def native_value(self) -> float | None:
+        """Geef de offset terug voor het overeenkomstige curve-punt."""
+        if self.coordinator.data is None:
+            return None
+        offsets = self.coordinator.data.get(KEY_OFFSETS)
+        if not offsets:
+            return 0.0
+        idx = _OFFSET_INDEX_FROM_KEY.get(self.entity_description.key)
+        if idx is None or idx >= len(offsets):
+            return None
+        return offsets[idx]

@@ -77,17 +77,26 @@
       "t_windchill": { "name": "Wind chill correction" },
       "t_zon": { "name": "Sun correction" },
       "t_prijs": { "name": "Price correction" },
-      "current_price": { "name": "Current energy price" }
+      "current_price": { "name": "Current energy price" },
+      "curve_offset_1": { "name": "Curve offset 1 (coldest point)" },
+      "curve_offset_2": { "name": "Curve offset 2" },
+      "curve_offset_3": { "name": "Curve offset 3" },
+      "curve_offset_4": { "name": "Curve offset 4" },
+      "curve_offset_5": { "name": "Curve offset 5 (warmest point)" }
     },
     "number": {
       "compensation_factor": { "name": "Room compensation factor" },
       "t_min": { "name": "Minimum supply temperature" },
       "t_max": { "name": "Maximum supply temperature" },
       "forecast_hours": { "name": "Look-ahead window" },
-      "max_price_correction": { "name": "Max price correction" }
+      "max_price_correction": { "name": "Max price correction" },
+      "learning_rate": { "name": "Learning rate (0 = off)" }
     },
     "climate": {
       "thermostat": { "name": "Heating target" }
+    },
+    "button": {
+      "reset_learning": { "name": "Reset adaptive curve" }
     }
   }
 }
