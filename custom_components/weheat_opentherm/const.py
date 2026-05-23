@@ -21,6 +21,12 @@ CONF_MAX_PRICE_CORRECTION = "max_price_correction"
 CONF_CURVE_POINTS = "curve_points"
 CONF_LEARNING_RATE = "learning_rate"
 
+# Geavanceerde correcties
+CONF_CHEAP_PREHEAT_DELTA = "cheap_preheat_delta"
+CONF_EXPENSIVE_SAVING_DELTA = "expensive_saving_delta"
+CONF_SUN_SUNNY = "sun_sunny"
+CONF_SUN_PARTLYCLOUDY = "sun_partlycloudy"
+
 # Default values
 DEFAULT_TARGET_TEMP = 20.0
 DEFAULT_T_MIN = 15.0
@@ -30,6 +36,10 @@ DEFAULT_FORECAST_HOURS = 3
 DEFAULT_MAX_PRICE_CORRECTION = 3.0
 DEFAULT_SETPOINT_ENTITY = "input_number.ot_setpoint"
 DEFAULT_LEARNING_RATE = 0.1  # °C per leerstap (1×/uur); 0 = uit
+DEFAULT_CHEAP_PREHEAT_DELTA = 2.0   # °C bij goedkope stroom
+DEFAULT_EXPENSIVE_SAVING_DELTA = 2.0  # °C bij dure stroom (positieve waarde, intern negatief)
+DEFAULT_SUN_SUNNY = 3.0   # °C reductie bij condition "sunny"
+DEFAULT_SUN_PARTLYCLOUDY = 2.0  # °C reductie bij condition "partlycloudy"
 
 # Default heating curve: list of [outdoor_temp, flow_temp] pairs
 DEFAULT_CURVE_POINTS: list[list[float]] = [

@@ -64,6 +64,22 @@
           "p5_outdoor": "Punt 5 – buitentemperatuur",
           "p5_flow": "Punt 5 – aanvoertemperatuur"
         }
+      },
+      "advanced": {
+        "title": "Geavanceerde correcties",
+        "description": "Fine-tune de prijs- en zoncorrecties op basis van je woning.",
+        "data": {
+          "cheap_preheat_delta": "Voorverwarm-bonus bij goedkope stroom",
+          "expensive_saving_delta": "Besparing bij dure stroom",
+          "sun_sunny": "Zoncorrectie bij zonnig weer",
+          "sun_partlycloudy": "Zoncorrectie bij deels bewolkt weer"
+        },
+        "data_description": {
+          "cheap_preheat_delta": "Hoger = sterker voorverwarmen bij lage prijzen. Lager bij licht gebouw met weinig thermische massa.",
+          "expensive_saving_delta": "Hoger = sterker bezuinigen bij hoge prijzen. Let op kamercomfort.",
+          "sun_sunny": "Hoger bij grote zuid-georiënteerde ramen, lager bij noord of weinig glas.",
+          "sun_partlycloudy": "Doorgaans ~⅔ van de zonnige waarde."
+        }
       }
     }
   },
