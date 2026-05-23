@@ -1,0 +1,11 @@
+{
+  "domain": "weheat_opentherm",
+  "name": "WeHeat OpenTherm Setpoint",
+  "version": "1.0.0",
+  "documentation": "https://github.com/fhettinga/ha-setpoint-heating",
+  "codeowners": ["@fhettinga"],
+  "requirements": [],
+  "iot_class": "local_polling",
+  "config_flow": true,
+  "homeassistant": "2024.1.0"
+}
