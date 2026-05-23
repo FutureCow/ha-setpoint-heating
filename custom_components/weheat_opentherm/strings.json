@@ -16,7 +16,7 @@
           "outdoor_temp_sensor": "Sensor die de buitentemperatuur meet.",
           "weather_entity": "Wordt gebruikt voor windchill- en zoncorrectie.",
           "price_sensor": "EPEX Spot, Tibber of vergelijkbaar; wordt gebruikt voor prijscorrectie.",
-          "setpoint_entity": "input_number die via ESPHome/OpenTherm naar de warmtepomp wordt gestuurd."
+          "setpoint_entity": "Optioneel: input_number als extra brug naar ESPHome. Leeg laten als ESPHome rechtstreeks sensor.weheat_opentherm_aanvoersetpoint leest."
         }
       }
     },
