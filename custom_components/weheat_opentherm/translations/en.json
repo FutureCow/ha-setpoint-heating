@@ -64,6 +64,22 @@
           "p5_outdoor": "Point 5 – outdoor temperature",
           "p5_flow": "Point 5 – supply temperature"
         }
+      },
+      "advanced": {
+        "title": "Advanced corrections",
+        "description": "Fine-tune the price and sun corrections for your home.",
+        "data": {
+          "cheap_preheat_delta": "Preheat bonus when electricity is cheap",
+          "expensive_saving_delta": "Saving when electricity is expensive",
+          "sun_sunny": "Sun correction when sunny",
+          "sun_partlycloudy": "Sun correction when partly cloudy"
+        },
+        "data_description": {
+          "cheap_preheat_delta": "Higher = more preheating at low prices. Lower for light buildings with little thermal mass.",
+          "expensive_saving_delta": "Higher = stronger savings at high prices. Watch room comfort.",
+          "sun_sunny": "Higher for large south-facing windows, lower for north or little glazing.",
+          "sun_partlycloudy": "Usually ~⅔ of the sunny value."
+        }
       }
     }
   },

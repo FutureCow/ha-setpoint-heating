@@ -11,22 +11,30 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_CHEAP_PREHEAT_DELTA,
     CONF_COMPENSATION_FACTOR,
     CONF_CURVE_POINTS,
+    CONF_EXPENSIVE_SAVING_DELTA,
     CONF_FORECAST_HOURS,
     CONF_MAX_PRICE_CORRECTION,
     CONF_OUTDOOR_TEMP_SENSOR,
     CONF_PRICE_SENSOR,
     CONF_ROOM_TEMP_SENSOR,
     CONF_SETPOINT_ENTITY,
+    CONF_SUN_PARTLYCLOUDY,
+    CONF_SUN_SUNNY,
     CONF_T_MAX,
     CONF_T_MIN,
     CONF_TARGET_TEMP,
     CONF_WEATHER_ENTITY,
+    DEFAULT_CHEAP_PREHEAT_DELTA,
     DEFAULT_COMPENSATION_FACTOR,
     DEFAULT_CURVE_POINTS,
+    DEFAULT_EXPENSIVE_SAVING_DELTA,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_MAX_PRICE_CORRECTION,
+    DEFAULT_SUN_PARTLYCLOUDY,
+    DEFAULT_SUN_SUNNY,
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
@@ -170,7 +178,7 @@ class WeheatOptionsFlow(OptionsFlow):
                 for i in range(1, 6)
             ]
             self._pending[CONF_CURVE_POINTS] = curve
-            return self.async_create_entry(title="", data=self._pending)
+            return await self.async_step_advanced()
 
         raw = self.config_entry.options.get(CONF_CURVE_POINTS, DEFAULT_CURVE_POINTS)
         # Zorg altijd voor precies 5 punten; vul op met defaults als nodig
@@ -202,3 +210,55 @@ class WeheatOptionsFlow(OptionsFlow):
             step_id="curve",
             data_schema=vol.Schema(fields),
         )
+
+    async def async_step_advanced(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Stap 3: Geavanceerde correctie-instellingen."""
+        if user_input is not None:
+            self._pending.update(user_input)
+            return self.async_create_entry(title="", data=self._pending)
+
+        opts = self.config_entry.options
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_CHEAP_PREHEAT_DELTA,
+                    default=opts.get(CONF_CHEAP_PREHEAT_DELTA, DEFAULT_CHEAP_PREHEAT_DELTA),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.0, max=5.0, step=0.5, mode="slider",
+                        unit_of_measurement="°C",
+                    )
+                ),
+                vol.Required(
+                    CONF_EXPENSIVE_SAVING_DELTA,
+                    default=opts.get(CONF_EXPENSIVE_SAVING_DELTA, DEFAULT_EXPENSIVE_SAVING_DELTA),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.0, max=5.0, step=0.5, mode="slider",
+                        unit_of_measurement="°C",
+                    )
+                ),
+                vol.Required(
+                    CONF_SUN_SUNNY,
+                    default=opts.get(CONF_SUN_SUNNY, DEFAULT_SUN_SUNNY),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.0, max=6.0, step=0.5, mode="slider",
+                        unit_of_measurement="°C",
+                    )
+                ),
+                vol.Required(
+                    CONF_SUN_PARTLYCLOUDY,
+                    default=opts.get(CONF_SUN_PARTLYCLOUDY, DEFAULT_SUN_PARTLYCLOUDY),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.0, max=6.0, step=0.5, mode="slider",
+                        unit_of_measurement="°C",
+                    )
+                ),
+            }
+        )
+
+        return self.async_show_form(step_id="advanced", data_schema=schema)

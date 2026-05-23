@@ -10,8 +10,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    CONF_CHEAP_PREHEAT_DELTA,
     CONF_COMPENSATION_FACTOR,
     CONF_CURVE_POINTS,
+    CONF_EXPENSIVE_SAVING_DELTA,
     CONF_FORECAST_HOURS,
     CONF_LEARNING_RATE,
     CONF_MAX_PRICE_CORRECTION,
@@ -19,15 +21,21 @@ from .const import (
     CONF_PRICE_SENSOR,
     CONF_ROOM_TEMP_SENSOR,
     CONF_SETPOINT_ENTITY,
+    CONF_SUN_PARTLYCLOUDY,
+    CONF_SUN_SUNNY,
     CONF_T_MAX,
     CONF_T_MIN,
     CONF_TARGET_TEMP,
     CONF_WEATHER_ENTITY,
+    DEFAULT_CHEAP_PREHEAT_DELTA,
     DEFAULT_COMPENSATION_FACTOR,
     DEFAULT_CURVE_POINTS,
+    DEFAULT_EXPENSIVE_SAVING_DELTA,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_LEARNING_RATE,
     DEFAULT_MAX_PRICE_CORRECTION,
+    DEFAULT_SUN_PARTLYCLOUDY,
+    DEFAULT_SUN_SUNNY,
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
@@ -102,6 +110,10 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         max_price_corr: float = self._opt(CONF_MAX_PRICE_CORRECTION, DEFAULT_MAX_PRICE_CORRECTION)
         curve_points: list[list[float]] = self._opt(CONF_CURVE_POINTS, DEFAULT_CURVE_POINTS)
         learning_rate: float = self._opt(CONF_LEARNING_RATE, DEFAULT_LEARNING_RATE)
+        cheap_delta: float = self._opt(CONF_CHEAP_PREHEAT_DELTA, DEFAULT_CHEAP_PREHEAT_DELTA)
+        expensive_delta: float = self._opt(CONF_EXPENSIVE_SAVING_DELTA, DEFAULT_EXPENSIVE_SAVING_DELTA)
+        sun_sunny: float = self._opt(CONF_SUN_SUNNY, DEFAULT_SUN_SUNNY)
+        sun_partlycloudy: float = self._opt(CONF_SUN_PARTLYCLOUDY, DEFAULT_SUN_PARTLYCLOUDY)
 
         # Module 1: Stooklijn (met geleerde offsets) + kamercompensatie
         await self.learning.async_load()
@@ -113,7 +125,11 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         t_windchill, t_zon = 0.0, 0.0
         if weather_entity:
             t_windchill, t_zon = await async_get_forecast_corrections(
-                self.hass, weather_entity, forecast_hours
+                self.hass,
+                weather_entity,
+                forecast_hours,
+                sun_sunny=sun_sunny,
+                sun_partlycloudy=sun_partlycloudy,
             )
 
         # Module 3: Dynamische energieprijzen
@@ -122,7 +138,13 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if price_sensor:
             current_price, all_prices = await async_get_price_data(self.hass, price_sensor)
             t_prijs = calculate_price_correction(
-                current_price, all_prices, room_temp, target_temp, max_price_corr
+                current_price,
+                all_prices,
+                room_temp,
+                target_temp,
+                max_price_corr,
+                cheap_delta=cheap_delta,
+                expensive_delta=expensive_delta,
             )
 
         # Eindberekening

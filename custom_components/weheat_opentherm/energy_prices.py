@@ -11,8 +11,6 @@ _LOGGER = logging.getLogger(__name__)
 
 _CHEAP_SIGMA = 0.5   # drempel voor "goedkoop": < gemiddelde - 0.5 * sigma
 _EXP_SIGMA = 0.5     # drempel voor "duur":    > gemiddelde + 0.5 * sigma
-_CHEAP_DELTA = 2.0   # °C voorverwarming bij goedkope stroom
-_EXP_DELTA = -2.0    # °C besparing bij dure stroom
 _PREHEAT_MARGIN = 1.5  # niet voorverwarmen als kamer al warm genoeg is
 
 
@@ -61,6 +59,8 @@ def calculate_price_correction(
     room_temp: float,
     target_temp: float,
     max_correction: float,
+    cheap_delta: float,
+    expensive_delta: float,
 ) -> float:
     """Bereken setpoint-correctie op basis van energieprijs.
 
@@ -70,6 +70,8 @@ def calculate_price_correction(
         room_temp: Actuele kamertemperatuur in °C.
         target_temp: Gewenste kamertemperatuur in °C.
         max_correction: Maximale correctie in °C (instelbaar).
+        cheap_delta: Voorverwarm-bonus bij goedkope stroom (positieve °C).
+        expensive_delta: Besparing bij dure stroom (positieve °C, intern negatief).
 
     Returns:
         Correctie in °C, begrensd op ±max_correction.
@@ -85,10 +87,10 @@ def calculate_price_correction(
 
     if current_price < mean - _CHEAP_SIGMA * stdev:
         # Goedkope stroom: voorverwarmen als kamer nog niet te warm is
-        correction = _CHEAP_DELTA if room_temp < target_temp + _PREHEAT_MARGIN else 0.0
+        correction = cheap_delta if room_temp < target_temp + _PREHEAT_MARGIN else 0.0
     elif current_price > mean + _EXP_SIGMA * stdev:
         # Dure stroom: bezuinigen
-        correction = _EXP_DELTA
+        correction = -abs(expensive_delta)
     else:
         correction = 0.0
 
