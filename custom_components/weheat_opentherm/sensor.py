@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -17,6 +18,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    CONF_T_MAX,
+    CONF_T_MIN,
+    DEFAULT_T_MAX,
+    DEFAULT_T_MIN,
     DOMAIN,
     KEY_CURRENT_PRICE,
     KEY_OFFSETS,
@@ -134,9 +139,14 @@ async def async_setup_entry(
 ) -> None:
     """Registreer diagnostische sensoren voor deze config entry."""
     coordinator: WeheatCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[SensorEntity] = [
-        WeheatSensor(coordinator, description, entry) for description in SENSORS
-    ]
+    entities: list[SensorEntity] = []
+    for description in SENSORS:
+        cls = (
+            WeheatSetpointSensor
+            if description.key == "t_definitief"
+            else WeheatSensor
+        )
+        entities.append(cls(coordinator, description, entry))
     entities.extend(
         WeheatOffsetSensor(coordinator, description, entry)
         for description in OFFSET_SENSORS
@@ -190,3 +200,62 @@ class WeheatOffsetSensor(WeheatSensor):
         if idx is None or idx >= len(offsets):
             return None
         return offsets[idx]
+
+
+def _fmt(value: float, signed: bool = False) -> str:
+    """Compact getal-formaat voor weergave in de formule."""
+    if signed and value > 0:
+        return f"+{value:.2f}"
+    return f"{value:.2f}"
+
+
+class WeheatSetpointSensor(WeheatSensor):
+    """Setpoint-sensor met volledige formule-opbouw als attributen."""
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Toon de opbouw van het berekende setpoint."""
+        data = self.coordinator.data
+        if data is None:
+            return {}
+
+        s = float(data.get(KEY_T_STOOKLIJN) or 0.0)
+        kc = float(data.get(KEY_T_KAMER_COMP) or 0.0)
+        w = float(data.get(KEY_T_WINDCHILL) or 0.0)
+        z = float(data.get(KEY_T_ZON) or 0.0)
+        p = float(data.get(KEY_T_PRIJS) or 0.0)
+        final = data.get(KEY_T_DEFINITIEF)
+
+        raw_sum = round(s + kc + w - z + p, 2)
+        opts = self.coordinator.entry.options
+        t_min = float(opts.get(CONF_T_MIN, DEFAULT_T_MIN))
+        t_max = float(opts.get(CONF_T_MAX, DEFAULT_T_MAX))
+        was_clamped = final is not None and round(float(final), 2) != raw_sum
+
+        offsets = data.get(KEY_OFFSETS) or []
+        learned_adjustment = round(sum(offsets), 2) if offsets else 0.0
+
+        formule = (
+            f"{_fmt(s)} (stooklijn) "
+            f"{_fmt(kc, signed=True)} (kamer) "
+            f"{_fmt(w, signed=True)} (windchill) "
+            f"{_fmt(-z, signed=True)} (zon) "
+            f"{_fmt(p, signed=True)} (prijs) "
+            f"= {raw_sum:.2f}"
+        )
+        if was_clamped:
+            formule += f" → clamp[{t_min:.1f}, {t_max:.1f}] = {final:.1f}"
+
+        return {
+            "formule": formule,
+            "stooklijn_basis": s,
+            "kamercompensatie": kc,
+            "windchill_correctie": w,
+            "zon_correctie": -z,
+            "prijs_correctie": p,
+            "som_voor_begrenzing": raw_sum,
+            "t_min": t_min,
+            "t_max": t_max,
+            "begrensd": was_clamped,
+            "geleerde_offset_totaal": learned_adjustment,
+        }
