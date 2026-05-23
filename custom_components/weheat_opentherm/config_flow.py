@@ -27,7 +27,6 @@ from .const import (
     DEFAULT_CURVE_POINTS,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_MAX_PRICE_CORRECTION,
-    DEFAULT_SETPOINT_ENTITY,
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
@@ -71,9 +70,7 @@ class WeheatConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_PRICE_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
-                vol.Optional(
-                    CONF_SETPOINT_ENTITY, default=DEFAULT_SETPOINT_ENTITY
-                ): selector.EntitySelector(
+                vol.Optional(CONF_SETPOINT_ENTITY): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="input_number")
                 ),
             }

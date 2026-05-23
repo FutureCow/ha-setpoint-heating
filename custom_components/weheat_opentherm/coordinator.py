@@ -26,7 +26,6 @@ from .const import (
     DEFAULT_CURVE_POINTS,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_MAX_PRICE_CORRECTION,
-    DEFAULT_SETPOINT_ENTITY,
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
@@ -79,7 +78,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         room_sensor: str = data[CONF_ROOM_TEMP_SENSOR]
         weather_entity: str | None = data.get(CONF_WEATHER_ENTITY)
         price_sensor: str | None = data.get(CONF_PRICE_SENSOR)
-        setpoint_entity: str = data.get(CONF_SETPOINT_ENTITY, DEFAULT_SETPOINT_ENTITY)
+        setpoint_entity: str | None = data.get(CONF_SETPOINT_ENTITY)
 
         outdoor_temp = self._read_sensor(outdoor_sensor)
         room_temp = self._read_sensor(room_sensor)
@@ -122,7 +121,8 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         t_definitief = t_stooklijn + t_kamer_comp + t_windchill - t_zon + t_prijs
         t_definitief = round(max(t_min, min(t_max, t_definitief)), 1)
 
-        await self._async_write_setpoint(setpoint_entity, t_definitief)
+        if setpoint_entity:
+            await self._async_write_setpoint(setpoint_entity, t_definitief)
 
         return {
             KEY_OUTDOOR_TEMP: outdoor_temp,

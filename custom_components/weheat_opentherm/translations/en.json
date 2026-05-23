@@ -16,7 +16,7 @@
           "outdoor_temp_sensor": "Sensor measuring the outdoor temperature.",
           "weather_entity": "Used for wind chill and sun corrections.",
           "price_sensor": "EPEX Spot, Tibber or similar; used for price correction.",
-          "setpoint_entity": "input_number sent via ESPHome/OpenTherm to the heat pump."
+          "setpoint_entity": "Optional: input_number bridge for ESPHome. Leave empty when ESPHome reads sensor.weheat_opentherm_aanvoersetpoint directly."
         }
       }
     },
