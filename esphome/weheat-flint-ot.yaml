@@ -48,7 +48,8 @@ opentherm:
   out_pin: GPIO11
   sync_mode: false
   t_set: stooklijn_setpoint
-  ch_enable: ch_enable_switch
+  # CH-enable bit wordt door de switch.opentherm.ch_enable beneden gestuurd.
+  # Niet hier specificeren; de switch wordt automatisch gekoppeld.
 
 # ─── Sensors ─────────────────────────────────────────────────────────────────
 sensor:
@@ -120,12 +121,11 @@ binary_sensor:
     name: "Apparaatstatus"
 
 # ─── Switches ─────────────────────────────────────────────────────────────────
-# ch_enable_switch stuurt de opentherm ch_enable aan (zie bovenaan).
+# CV inschakeling: stuurt automatisch de OpenTherm CH-enable bit.
 # Standaard AAN bij herstart. Vanuit HA uit te schakelen als verwarming
 # niet gewenst is (vakantie, zomer, etc.).
 switch:
   - platform: opentherm
-    id: ch_enable_switch
     ch_enable:
       name: "CV inschakelen"
       restore_mode: RESTORE_DEFAULT_ON
