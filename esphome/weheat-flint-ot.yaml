@@ -48,12 +48,10 @@ opentherm:
   out_pin: GPIO11
   sync_mode: false
   t_set: stooklijn_setpoint
-  # CH/cooling-enable worden auto-gestuurd o.b.v. de climate-mode in HA:
-  #   climate state "heat" → heat_mode_active = true  → ch_enable
-  #   climate state "cool" → cool_mode_active = true  → cooling_enable
-  #   climate state "off"  → beide false              → warmtepomp uit
-  ch_enable: heat_mode_active
-  cooling_enable: cool_mode_active
+  # ch_enable / cooling_enable worden NIET hier gespecificeerd.
+  # Ze worden beheerd door de switches beneden (ch_enable_switch /
+  # cooling_enable_switch), die automatisch worden gezet door de
+  # automation op text_sensor "actieve_modus".
 
 # ─── Sensors ─────────────────────────────────────────────────────────────────
 sensor:
@@ -144,21 +142,23 @@ binary_sensor:
   - platform: status
     name: "Apparaatstatus"
 
-  # Auto-modus: deze binary_sensors worden door de opentherm hub gelezen
-  # als ch_enable / cooling_enable. State volgt rechtstreeks de climate-mode
-  # in HA — geen handmatige switches meer nodig.
-  - platform: template
-    id: heat_mode_active
-    name: "Verwarmingsmodus actief"
-    entity_category: diagnostic
-    lambda: |-
-      return id(climate_mode).state == "heat";
-  - platform: template
-    id: cool_mode_active
-    name: "Koelmodus actief"
-    entity_category: diagnostic
-    lambda: |-
-      return id(climate_mode).state == "cool";
+# ─── Switches ─────────────────────────────────────────────────────────────────
+# Deze switches sturen de OpenTherm ch_enable / cooling_enable bits.
+# Ze worden automatisch gezet door de automation op text_sensor "actieve_modus".
+# Diagnostic category: zichtbaar in HA voor debug, maar handmatige toggle
+# wordt direct overschreven zodra de integratie een nieuwe modus stuurt.
+switch:
+  - platform: opentherm
+    ch_enable:
+      name: "CV inschakelen"
+      id: ch_enable_switch
+      restore_mode: ALWAYS_OFF
+      entity_category: diagnostic
+    cooling_enable:
+      name: "Koeling inschakelen"
+      id: cooling_enable_switch
+      restore_mode: ALWAYS_OFF
+      entity_category: diagnostic
 
 status_led:
   pin: GPIO8
@@ -172,7 +172,29 @@ text_sensor:
   # Verschil met climate.hvac_mode: deze sensor houdt rekening met de
   # stookgrens en koelgrens. Bij climate=HEAT maar buitentemp boven stookgrens
   # geeft deze "off" terug — warmtepomp stopt automatisch.
+  #
+  # on_value automation schakelt de twee opentherm switches gelijktijdig.
   - platform: homeassistant
-    id: climate_mode
+    id: actieve_modus
     name: "Actieve modus (van integratie)"
     entity_id: sensor.weheat_opentherm_actieve_modus
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return x == "heat";'
+            then:
+              - switch.turn_on: ch_enable_switch
+              - switch.turn_off: cooling_enable_switch
+        - if:
+            condition:
+              lambda: 'return x == "cool";'
+            then:
+              - switch.turn_off: ch_enable_switch
+              - switch.turn_on: cooling_enable_switch
+        - if:
+            condition:
+              lambda: 'return x != "heat" && x != "cool";'
+            then:
+              - switch.turn_off: ch_enable_switch
+              - switch.turn_off: cooling_enable_switch
