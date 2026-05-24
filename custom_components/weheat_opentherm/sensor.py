@@ -23,7 +23,6 @@ from .const import (
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DOMAIN,
-    HVAC_MODE_COOL,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
@@ -248,24 +247,11 @@ class WeheatSetpointSensor(WeheatSensor):
         s = float(data.get(KEY_T_STOOKLIJN) or 0.0)
         kc = float(data.get(KEY_T_KAMER_COMP) or 0.0)
 
-        # OFF: alles uit
-        if mode == HVAC_MODE_OFF:
+        # OFF (door gebruiker of door stookgrens): alles uit
+        if mode == HVAC_MODE_OFF or final is None:
             return {
                 "modus": "uit",
                 "formule": "warmtepomp uit — geen setpoint",
-            }
-
-        # COOL: simpel formaat, geen stooklijn/correcties
-        if mode == HVAC_MODE_COOL:
-            return {
-                "modus": "koelen",
-                "formule": (
-                    f"koelaanvoer {s:.1f} {_fmt(-kc, signed=True)} (boost)"
-                    f" = {final:.1f}"
-                ),
-                "koelaanvoer_basis": s,
-                "kamer_boost": -kc,
-                "min_supply": 15.0,
             }
 
         # HEAT: volledige opbouw met alle correcties

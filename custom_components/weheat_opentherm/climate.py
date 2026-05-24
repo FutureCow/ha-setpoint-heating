@@ -21,7 +21,6 @@ from .const import (
     DEFAULT_HVAC_MODE,
     DEFAULT_TARGET_TEMP,
     DOMAIN,
-    HVAC_MODE_COOL,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     KEY_ROOM_TEMP,
@@ -30,7 +29,6 @@ from .coordinator import WeheatCoordinator
 
 _MODE_FROM_STR = {
     HVAC_MODE_HEAT: HVACMode.HEAT,
-    HVAC_MODE_COOL: HVACMode.COOL,
     HVAC_MODE_OFF: HVACMode.OFF,
 }
 _STR_FROM_MODE = {v: k for k, v in _MODE_FROM_STR.items()}
@@ -55,7 +53,7 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "thermostat"
-    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL]
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.TURN_ON

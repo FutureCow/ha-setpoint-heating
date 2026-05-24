@@ -12,12 +12,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     CONF_CHEAP_PREHEAT_DELTA,
     CONF_COMPENSATION_FACTOR,
-    CONF_COOLING_SUPPLY_TEMP,
     CONF_CURVE_POINTS,
     CONF_EXPENSIVE_SAVING_DELTA,
     CONF_FORECAST_HOURS,
     CONF_HVAC_MODE,
-    CONF_KOELGRENS,
     CONF_LEARNING_RATE,
     CONF_MAX_PRICE_CORRECTION,
     CONF_OUTDOOR_TEMP_SENSOR,
@@ -31,16 +29,12 @@ from .const import (
     CONF_T_MIN,
     CONF_TARGET_TEMP,
     CONF_WEATHER_ENTITY,
-    COOLING_MAX_BOOST,
-    COOLING_MIN_SUPPLY,
     DEFAULT_CHEAP_PREHEAT_DELTA,
     DEFAULT_COMPENSATION_FACTOR,
-    DEFAULT_COOLING_SUPPLY_TEMP,
     DEFAULT_CURVE_POINTS,
     DEFAULT_EXPENSIVE_SAVING_DELTA,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_HVAC_MODE,
-    DEFAULT_KOELGRENS,
     DEFAULT_LEARNING_RATE,
     DEFAULT_MAX_PRICE_CORRECTION,
     DEFAULT_STOOKGRENS,
@@ -50,7 +44,6 @@ from .const import (
     DEFAULT_T_MIN,
     DEFAULT_TARGET_TEMP,
     DOMAIN,
-    HVAC_MODE_COOL,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
@@ -120,17 +113,15 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         target_temp: float = self._opt(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP)
         hvac_mode: str = self._opt(CONF_HVAC_MODE, DEFAULT_HVAC_MODE)
         stookgrens: float = self._opt(CONF_STOOKGRENS, DEFAULT_STOOKGRENS)
-        koelgrens: float = self._opt(CONF_KOELGRENS, DEFAULT_KOELGRENS)
 
-        # Bepaal effectieve modus o.b.v. user-mode + buitentemp-grenzen
+        # Bepaal effectieve modus: HEAT alleen onder de stookgrens.
+        # Koelen gaat via de interne stooklijn van de WeHeat — geen OpenTherm.
         if hvac_mode == HVAC_MODE_HEAT and outdoor_temp >= stookgrens:
             effective_mode = HVAC_MODE_OFF  # te warm voor verwarmen
-        elif hvac_mode == HVAC_MODE_COOL and outdoor_temp <= koelgrens:
-            effective_mode = HVAC_MODE_OFF  # te koud voor koelen
         else:
             effective_mode = hvac_mode
 
-        # OFF (door gebruiker OF door grenscheck): geen setpoint schrijven.
+        # OFF (door gebruiker OF door stookgrens): geen setpoint schrijven.
         if effective_mode == HVAC_MODE_OFF:
             await self.learning.async_load()
             return {
@@ -148,38 +139,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 KEY_EFFECTIVE_MODE: HVAC_MODE_OFF,
             }
 
-        # COOL: vaste koelaanvoer met kleine kamer-overschrijdings-boost.
-        if effective_mode == HVAC_MODE_COOL:
-            cooling_supply: float = self._opt(
-                CONF_COOLING_SUPPLY_TEMP, DEFAULT_COOLING_SUPPLY_TEMP
-            )
-            # Kamer warmer dan doel → supply lager (sterkere koeling), begrensd.
-            overshoot = room_temp - target_temp
-            boost = max(-COOLING_MAX_BOOST, min(COOLING_MAX_BOOST, overshoot))
-            t_definitief = round(
-                max(COOLING_MIN_SUPPLY, cooling_supply - boost), 1
-            )
-
-            if setpoint_entity:
-                await self._async_write_setpoint(setpoint_entity, t_definitief)
-
-            await self.learning.async_load()
-            return {
-                KEY_OUTDOOR_TEMP: outdoor_temp,
-                KEY_ROOM_TEMP: room_temp,
-                KEY_T_STOOKLIJN: cooling_supply,
-                KEY_T_KAMER_COMP: -boost,  # negatieve waarde = extra koeling
-                KEY_T_WINDCHILL: 0.0,
-                KEY_T_ZON: 0.0,
-                KEY_T_PRIJS: 0.0,
-                KEY_T_DEFINITIEF: t_definitief,
-                KEY_CURRENT_PRICE: 0.0,
-                KEY_OFFSETS: self.learning.offsets,
-                KEY_HVAC_MODE: hvac_mode,
-                KEY_EFFECTIVE_MODE: HVAC_MODE_COOL,
-            }
-
-        # HEAT (default): bestaande stooklijn-berekening
+        # HEAT: stooklijn-berekening (enige actieve modus naast OFF)
         t_min: float = self._opt(CONF_T_MIN, DEFAULT_T_MIN)
         t_max: float = self._opt(CONF_T_MAX, DEFAULT_T_MAX)
         factor: float = self._opt(CONF_COMPENSATION_FACTOR, DEFAULT_COMPENSATION_FACTOR)
