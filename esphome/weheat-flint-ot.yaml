@@ -25,6 +25,11 @@ logger:
   level: INFO
   logs:
     component: ERROR
+    # Optioneel: ontkoppel onderstaande regel als "Timeout while waiting for
+    # response from device" warnings je log volspammen. Dit zijn meestal
+    # niet-fatale OT-timeouts waar de slave niet reageert op een specifiek
+    # message-ID. Andere opentherm-issues (ERROR-level) blijven zichtbaar.
+    # opentherm: ERROR
 
 api:
   encryption:
@@ -46,7 +51,10 @@ web_server:
 opentherm:
   in_pin: GPIO10
   out_pin: GPIO11
-  sync_mode: false
+  # sync_mode true = blokkerende reads, betrouwbaarder bij timing-issues.
+  # Bij regelmatige "Timeout while waiting for response" warnings is dit
+  # een betere keuze dan async (false). Iets trager maar stabieler.
+  sync_mode: true
   t_set: stooklijn_setpoint
   # ch_enable wordt beheerd door ch_enable_switch beneden, die automatisch
   # wordt gezet door de automation op text_sensor "actieve_modus".
