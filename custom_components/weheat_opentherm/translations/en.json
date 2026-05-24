@@ -98,7 +98,8 @@
       "curve_offset_2": { "name": "Curve offset 2" },
       "curve_offset_3": { "name": "Curve offset 3" },
       "curve_offset_4": { "name": "Curve offset 4" },
-      "curve_offset_5": { "name": "Curve offset 5 (warmest point)" }
+      "curve_offset_5": { "name": "Curve offset 5 (warmest point)" },
+      "actieve_modus": { "name": "Active mode" }
     },
     "number": {
       "compensation_factor": { "name": "Room compensation factor" },
@@ -107,7 +108,9 @@
       "forecast_hours": { "name": "Look-ahead window" },
       "max_price_correction": { "name": "Max price correction" },
       "learning_rate": { "name": "Learning rate (0 = off)" },
-      "cooling_supply_temp": { "name": "Cooling supply temperature" }
+      "cooling_supply_temp": { "name": "Cooling supply temperature" },
+      "stookgrens": { "name": "Heating threshold (above = no heating)" },
+      "koelgrens": { "name": "Cooling threshold (below = no cooling)" }
     },
     "climate": {
       "thermostat": { "name": "Heating target" }

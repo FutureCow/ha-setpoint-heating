@@ -98,7 +98,8 @@
       "curve_offset_2": { "name": "Stooklijn offset 2" },
       "curve_offset_3": { "name": "Stooklijn offset 3" },
       "curve_offset_4": { "name": "Stooklijn offset 4" },
-      "curve_offset_5": { "name": "Stooklijn offset 5 (warmste punt)" }
+      "curve_offset_5": { "name": "Stooklijn offset 5 (warmste punt)" },
+      "actieve_modus": { "name": "Actieve modus" }
     },
     "number": {
       "compensation_factor": { "name": "Kamercompensatiefactor" },
@@ -107,7 +108,9 @@
       "forecast_hours": { "name": "Vooruitkijkvenster" },
       "max_price_correction": { "name": "Max prijscorrectie" },
       "learning_rate": { "name": "Leersnelheid (0 = uit)" },
-      "cooling_supply_temp": { "name": "Koelaanvoertemperatuur" }
+      "cooling_supply_temp": { "name": "Koelaanvoertemperatuur" },
+      "stookgrens": { "name": "Stookgrens (boven = niet verwarmen)" },
+      "koelgrens": { "name": "Koelgrens (onder = niet koelen)" }
     },
     "climate": {
       "thermostat": { "name": "Verwarmingsdoelwit" }

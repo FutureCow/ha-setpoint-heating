@@ -27,6 +27,7 @@ from .const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
+    KEY_EFFECTIVE_MODE,
     KEY_HVAC_MODE,
     KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
@@ -136,6 +137,14 @@ OFFSET_SENSORS: tuple[WeheatSensorDescription, ...] = tuple(
 )
 
 
+MODE_SENSOR = WeheatSensorDescription(
+    key="actieve_modus",
+    data_key=KEY_EFFECTIVE_MODE,
+    translation_key="actieve_modus",
+    icon="mdi:hvac",
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -155,6 +164,7 @@ async def async_setup_entry(
         WeheatOffsetSensor(coordinator, description, entry)
         for description in OFFSET_SENSORS
     )
+    entities.append(WeheatModeSensor(coordinator, MODE_SENSOR, entry))
     async_add_entities(entities)
 
 
@@ -187,6 +197,16 @@ class WeheatSensor(CoordinatorEntity[WeheatCoordinator], SensorEntity):
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get(self.entity_description.data_key)
+
+
+class WeheatModeSensor(WeheatSensor):
+    """Toont de effectieve modus (heat/cool/off) — ESP leest deze."""
+
+    @property
+    def native_value(self) -> str | None:
+        if self.coordinator.data is None:
+            return None
+        return self.coordinator.data.get(KEY_EFFECTIVE_MODE) or HVAC_MODE_OFF
 
 
 class WeheatOffsetSensor(WeheatSensor):

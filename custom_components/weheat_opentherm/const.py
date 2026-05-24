@@ -30,6 +30,8 @@ CONF_SUN_PARTLYCLOUDY = "sun_partlycloudy"
 # HVAC modus (heat / cool / off) + cooling-instellingen
 CONF_HVAC_MODE = "hvac_mode"
 CONF_COOLING_SUPPLY_TEMP = "cooling_supply_temp"
+CONF_STOOKGRENS = "stookgrens"
+CONF_KOELGRENS = "koelgrens"
 
 # Toegestane HVAC-modus waarden
 HVAC_MODE_HEAT = "heat"
@@ -55,6 +57,8 @@ DEFAULT_SUN_SUNNY = 3.0   # °C reductie bij condition "sunny"
 DEFAULT_SUN_PARTLYCLOUDY = 2.0  # °C reductie bij condition "partlycloudy"
 DEFAULT_HVAC_MODE = HVAC_MODE_HEAT
 DEFAULT_COOLING_SUPPLY_TEMP = 18.0  # °C — typische koelaanvoer voor warmtepomp
+DEFAULT_STOOKGRENS = 17.0  # °C buiten — boven deze drempel niet meer verwarmen
+DEFAULT_KOELGRENS = 22.0   # °C buiten — onder deze drempel niet meer koelen
 
 # Default heating curve: list of [outdoor_temp, flow_temp] pairs
 DEFAULT_CURVE_POINTS: list[list[float]] = [
@@ -76,4 +80,5 @@ KEY_T_PRIJS = "t_prijs"
 KEY_T_DEFINITIEF = "t_definitief"
 KEY_CURRENT_PRICE = "current_price"
 KEY_OFFSETS = "curve_offsets"  # list[float] van 5 leer-offsets
-KEY_HVAC_MODE = "hvac_mode"
+KEY_HVAC_MODE = "hvac_mode"             # door gebruiker gekozen
+KEY_EFFECTIVE_MODE = "effective_mode"   # daadwerkelijk actief (heat/cool/off na grenscheck)
