@@ -108,9 +108,7 @@
       "forecast_hours": { "name": "Look-ahead window" },
       "max_price_correction": { "name": "Max price correction" },
       "learning_rate": { "name": "Learning rate (0 = off)" },
-      "cooling_supply_temp": { "name": "Cooling supply temperature" },
-      "stookgrens": { "name": "Heating threshold (above = no heating)" },
-      "koelgrens": { "name": "Cooling threshold (below = no cooling)" }
+      "stookgrens": { "name": "Heating threshold (above = no heating)" }
     },
     "climate": {
       "thermostat": { "name": "Heating target" }

@@ -154,13 +154,11 @@ Alles wat je kunt bijregelen, op één rij:
 - Vooruitkijkvenster (1–6 uur, default 3)
 - Max prijscorrectie (0–5°C, default 3.0)
 - Leersnelheid adaptieve stooklijn (0–0.5°C/uur, default 0.1, 0 = uit)
-- Koelaanvoertemperatuur (15–25°C, default 18°C) — alleen actief in COOL-modus
 - Stookgrens (10–25°C buiten, default 17°C) — boven deze drempel stopt verwarmen automatisch
-- Koelgrens (15–30°C buiten, default 22°C) — onder deze drempel stopt koelen automatisch
 
 ### Via climate-entiteit
 - Gewenste kamertemperatuur
-- HVAC-modus: **Verwarmen** (stooklijn-berekening) / **Koelen** (vaste koelaanvoer) / **Uit** (warmtepomp stopt)
+- HVAC-modus: **Verwarmen** (stooklijn-berekening) / **Uit** (warmtepomp stopt). Koelen wordt door de WeHeat intern geregeld (eigen koelstooklijn, geen OpenTherm-aansturing).
 
 ### Via options flow (3 stappen)
 - **Stap 1 — Temperatuurinstellingen:** doel, min/max, factoren
@@ -220,46 +218,21 @@ Onder device "WeHeat OpenTherm" verschijnen automatisch:
 - `number.…_kamercompensatiefactor`, `_minimale_aanvoertemperatuur`, `_maximale_aanvoertemperatuur`, `_vooruitkijkvenster`, `_max_prijscorrectie`, `_leersnelheid` — instelbare parameters
 - `button.…_reset_adaptieve_stooklijn` — wis leerstaat
 
-## Stook- en koelgrens (zomerstop / winterstop)
+## Stookgrens (zomerstop)
 
-De climate-mode is wat jij wilt; de **actieve modus** is wat er echt gebeurt na een buitentemp-check. Sinds v1.5:
+De climate-mode is wat jij wilt; de **actieve modus** is wat er echt gebeurt na een buitentemp-check.
 
-- **Stookgrens** (default 17°C): bij HEAT-modus + buitentemp ≥ stookgrens → actieve modus wordt `off`, warmtepomp stopt
-- **Koelgrens** (default 22°C): bij COOL-modus + buitentemp ≤ koelgrens → actieve modus wordt `off`
+- **Stookgrens** (default 17°C): bij HEAT-modus + buitentemp ≥ stookgrens → actieve modus wordt `off`, warmtepomp stopt.
 
-De ESP leest `sensor.weheat_opentherm_actieve_modus` rechtstreeks en zet `ch_enable` / `cooling_enable` op die basis. Geen `t_set` meer geschreven in `off`.
+De ESP leest `sensor.weheat_opentherm_actieve_modus` rechtstreeks en zet `ch_enable` op die basis. Geen `t_set` meer geschreven in `off`.
 
 Voorbeeld: kamer 21°C, buiten 20°C, climate=HEAT, stookgrens=17 → 20 ≥ 17 → **actieve modus = off** → warmtepomp doet niks. Zet je stookgrens op 25 dan zou hij wél verwarmen.
 
 ## Koelen
 
-Sinds v1.4 ondersteunt de integratie ook **koeling** via dezelfde climate-entiteit. Schakel naar **COOL** in HA → de coordinator stuurt een koelaanvoer-setpoint i.p.v. de stooklijn-berekening, en de ESP zet automatisch `cooling_enable` aan i.p.v. `ch_enable`.
+**Niet ondersteund** door deze integratie. De WeHeat Flint regelt koeling intern via een eigen koelstooklijn — er is geen OpenTherm-pad om koelaanvoer te sturen. Zet de WeHeat's eigen koelmodus aan/uit via de app of de fysieke knop.
 
-### Koelaanvoer-berekening (simpel maar effectief)
-
-```
-basis = koelaanvoertemperatuur (instelbaar 15–25°C, default 18°C)
-boost = clamp(kamer_temp − doel_temp, -2, +2)
-       ↑ kamer warmer dan doel → boost positief → supply lager → meer koeling
-       ↑ kamer onder doel       → boost negatief → supply hoger → minder koeling
-setpoint = max(15.0, basis − boost)   # condensatie-grens
-```
-
-De **15°C ondergrens** voorkomt condensatie op vloer/wandverwarming. Wil je sterker koelen, verlaag de `koelaanvoertemperatuur` zelf.
-
-### Wat de ESP doet bij modus-wissel
-
-| Climate-modus | OpenTherm flags | t_set wordt |
-|---|---|---|
-| **HEAT** | `ch_enable=ON`, `cooling_enable=OFF` | stooklijn-berekening (incl. correcties + leer-offsets) |
-| **COOL** | `ch_enable=OFF`, `cooling_enable=ON` | vaste koelaanvoer + kamer-boost |
-| **OFF** | beide `OFF` | niet meer geschreven; warmtepomp stopt |
-
-Geen handmatige switches meer nodig — de ESP leest `climate.weheat_opentherm_verwarmingsdoelwit` rechtstreeks uit en zet de flags automatisch.
-
-### Leren in COOL-mode?
-
-Nee, alleen tijdens HEAT loopt de adaptieve leerlaag. De geleerde offsets blijven bewaard tussen seizoenen — na de zomer pakt het systeem in HEAT-modus direct verder waar het was.
+De climate-entiteit van deze integratie heeft daarom alleen **Verwarmen** en **Uit**. Tijdens "Uit" (of automatisch via stookgrens) blokkeert de ESP `ch_enable` zodat de OT-bus de warmtepomp niet aan het verwarmen probeert te krijgen; de interne koeling kan dan vrij draaien.
 
 ## Tips & FAQ
 

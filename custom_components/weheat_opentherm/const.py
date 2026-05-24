@@ -27,20 +27,13 @@ CONF_EXPENSIVE_SAVING_DELTA = "expensive_saving_delta"
 CONF_SUN_SUNNY = "sun_sunny"
 CONF_SUN_PARTLYCLOUDY = "sun_partlycloudy"
 
-# HVAC modus (heat / cool / off) + cooling-instellingen
+# HVAC modus (heat / off) — koelen gaat via interne stooklijn van de warmtepomp
 CONF_HVAC_MODE = "hvac_mode"
-CONF_COOLING_SUPPLY_TEMP = "cooling_supply_temp"
 CONF_STOOKGRENS = "stookgrens"
-CONF_KOELGRENS = "koelgrens"
 
 # Toegestane HVAC-modus waarden
 HVAC_MODE_HEAT = "heat"
-HVAC_MODE_COOL = "cool"
 HVAC_MODE_OFF = "off"
-
-# Cooling veiligheidsgrenzen
-COOLING_MIN_SUPPLY = 15.0  # °C — onder deze drempel risico op condensatie
-COOLING_MAX_BOOST = 2.0    # °C — max extra koeling bij kamer-overschrijding
 
 # Default values
 DEFAULT_TARGET_TEMP = 20.0
@@ -56,9 +49,7 @@ DEFAULT_EXPENSIVE_SAVING_DELTA = 2.0  # °C bij dure stroom (positieve waarde, i
 DEFAULT_SUN_SUNNY = 3.0   # °C reductie bij condition "sunny"
 DEFAULT_SUN_PARTLYCLOUDY = 2.0  # °C reductie bij condition "partlycloudy"
 DEFAULT_HVAC_MODE = HVAC_MODE_HEAT
-DEFAULT_COOLING_SUPPLY_TEMP = 18.0  # °C — typische koelaanvoer voor warmtepomp
 DEFAULT_STOOKGRENS = 17.0  # °C buiten — boven deze drempel niet meer verwarmen
-DEFAULT_KOELGRENS = 22.0   # °C buiten — onder deze drempel niet meer koelen
 
 # Default heating curve: list of [outdoor_temp, flow_temp] pairs
 DEFAULT_CURVE_POINTS: list[list[float]] = [

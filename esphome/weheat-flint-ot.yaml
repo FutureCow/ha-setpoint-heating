@@ -48,10 +48,9 @@ opentherm:
   out_pin: GPIO11
   sync_mode: false
   t_set: stooklijn_setpoint
-  # ch_enable / cooling_enable worden NIET hier gespecificeerd.
-  # Ze worden beheerd door de switches beneden (ch_enable_switch /
-  # cooling_enable_switch), die automatisch worden gezet door de
-  # automation op text_sensor "actieve_modus".
+  # ch_enable wordt beheerd door ch_enable_switch beneden, die automatisch
+  # wordt gezet door de automation op text_sensor "actieve_modus".
+  # Koelen gaat via de interne stooklijn van de WeHeat (geen OpenTherm).
 
 # ─── Sensors ─────────────────────────────────────────────────────────────────
 sensor:
@@ -143,20 +142,15 @@ binary_sensor:
     name: "Apparaatstatus"
 
 # ─── Switches ─────────────────────────────────────────────────────────────────
-# Deze switches sturen de OpenTherm ch_enable / cooling_enable bits.
-# Ze worden automatisch gezet door de automation op text_sensor "actieve_modus".
-# Diagnostic category: zichtbaar in HA voor debug, maar handmatige toggle
-# wordt direct overschreven zodra de integratie een nieuwe modus stuurt.
+# ch_enable wordt automatisch gezet door de automation op text_sensor
+# "actieve_modus" hieronder. Diagnostic-categorie: zichtbaar in HA voor debug,
+# maar handmatige toggle wordt direct overschreven zodra de integratie een
+# nieuwe modus stuurt.
 switch:
   - platform: opentherm
     ch_enable:
       name: "CV inschakelen"
       id: ch_enable_switch
-      restore_mode: ALWAYS_OFF
-      entity_category: diagnostic
-    cooling_enable:
-      name: "Koeling inschakelen"
-      id: cooling_enable_switch
       restore_mode: ALWAYS_OFF
       entity_category: diagnostic
 
@@ -168,12 +162,9 @@ text_sensor:
     ip_address:
       name: "IP-adres"
 
-  # Leest de EFFECTIEVE modus uit de integratie (heat / cool / off).
-  # Verschil met climate.hvac_mode: deze sensor houdt rekening met de
-  # stookgrens en koelgrens. Bij climate=HEAT maar buitentemp boven stookgrens
-  # geeft deze "off" terug — warmtepomp stopt automatisch.
-  #
-  # on_value automation schakelt de twee opentherm switches gelijktijdig.
+  # Leest de EFFECTIEVE modus uit de integratie ("heat" of "off").
+  # "heat" bij climate=HEAT en buitentemp onder de stookgrens; anders "off".
+  # on_value automation schakelt ch_enable_switch synchroon mee.
   - platform: homeassistant
     id: actieve_modus
     name: "Actieve modus (van integratie)"
@@ -185,16 +176,5 @@ text_sensor:
               lambda: 'return x == "heat";'
             then:
               - switch.turn_on: ch_enable_switch
-              - switch.turn_off: cooling_enable_switch
-        - if:
-            condition:
-              lambda: 'return x == "cool";'
-            then:
+            else:
               - switch.turn_off: ch_enable_switch
-              - switch.turn_on: cooling_enable_switch
-        - if:
-            condition:
-              lambda: 'return x != "heat" && x != "cool";'
-            then:
-              - switch.turn_off: ch_enable_switch
-              - switch.turn_off: cooling_enable_switch

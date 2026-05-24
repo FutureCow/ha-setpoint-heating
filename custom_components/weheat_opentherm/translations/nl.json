@@ -108,9 +108,7 @@
       "forecast_hours": { "name": "Vooruitkijkvenster" },
       "max_price_correction": { "name": "Max prijscorrectie" },
       "learning_rate": { "name": "Leersnelheid (0 = uit)" },
-      "cooling_supply_temp": { "name": "Koelaanvoertemperatuur" },
-      "stookgrens": { "name": "Stookgrens (boven = niet verwarmen)" },
-      "koelgrens": { "name": "Koelgrens (onder = niet koelen)" }
+      "stookgrens": { "name": "Stookgrens (boven = niet verwarmen)" }
     },
     "climate": {
       "thermostat": { "name": "Verwarmingsdoelwit" }
