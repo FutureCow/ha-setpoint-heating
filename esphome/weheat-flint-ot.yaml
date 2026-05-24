@@ -48,8 +48,12 @@ opentherm:
   out_pin: GPIO11
   sync_mode: false
   t_set: stooklijn_setpoint
-  # CH-enable bit wordt door de switch.opentherm.ch_enable beneden gestuurd.
-  # Niet hier specificeren; de switch wordt automatisch gekoppeld.
+  # CH/cooling-enable worden auto-gestuurd o.b.v. de climate-mode in HA:
+  #   climate state "heat" → heat_mode_active = true  → ch_enable
+  #   climate state "cool" → cool_mode_active = true  → cooling_enable
+  #   climate state "off"  → beide false              → warmtepomp uit
+  ch_enable: heat_mode_active
+  cooling_enable: cool_mode_active
 
 # ─── Sensors ─────────────────────────────────────────────────────────────────
 sensor:
@@ -140,15 +144,21 @@ binary_sensor:
   - platform: status
     name: "Apparaatstatus"
 
-# ─── Switches ─────────────────────────────────────────────────────────────────
-# CV inschakeling: stuurt automatisch de OpenTherm CH-enable bit.
-# Standaard AAN bij herstart. Vanuit HA uit te schakelen als verwarming
-# niet gewenst is (vakantie, zomer, etc.).
-switch:
-  - platform: opentherm
-    ch_enable:
-      name: "CV inschakelen"
-      restore_mode: RESTORE_DEFAULT_ON
+  # Auto-modus: deze binary_sensors worden door de opentherm hub gelezen
+  # als ch_enable / cooling_enable. State volgt rechtstreeks de climate-mode
+  # in HA — geen handmatige switches meer nodig.
+  - platform: template
+    id: heat_mode_active
+    name: "Verwarmingsmodus actief"
+    entity_category: diagnostic
+    lambda: |-
+      return id(climate_mode).state == "heat";
+  - platform: template
+    id: cool_mode_active
+    name: "Koelmodus actief"
+    entity_category: diagnostic
+    lambda: |-
+      return id(climate_mode).state == "cool";
 
 status_led:
   pin: GPIO8
@@ -157,3 +167,11 @@ text_sensor:
   - platform: wifi_info
     ip_address:
       name: "IP-adres"
+
+  # Leest de climate-mode uit HA (heat / cool / off).
+  # De binary_sensors heat_mode_active / cool_mode_active gebruiken deze
+  # state om de OpenTherm ch_enable / cooling_enable bits te zetten.
+  - platform: homeassistant
+    id: climate_mode
+    name: "Modus (van HA climate)"
+    entity_id: climate.weheat_opentherm_verwarmingsdoelwit

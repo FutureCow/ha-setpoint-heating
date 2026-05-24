@@ -106,7 +106,8 @@
       "t_max": { "name": "Maximum supply temperature" },
       "forecast_hours": { "name": "Look-ahead window" },
       "max_price_correction": { "name": "Max price correction" },
-      "learning_rate": { "name": "Learning rate (0 = off)" }
+      "learning_rate": { "name": "Learning rate (0 = off)" },
+      "cooling_supply_temp": { "name": "Cooling supply temperature" }
     },
     "climate": {
       "thermostat": { "name": "Heating target" }

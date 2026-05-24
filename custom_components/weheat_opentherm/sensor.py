@@ -23,7 +23,11 @@ from .const import (
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DOMAIN,
+    HVAC_MODE_COOL,
+    HVAC_MODE_HEAT,
+    HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
+    KEY_HVAC_MODE,
     KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
     KEY_ROOM_TEMP,
@@ -219,13 +223,35 @@ class WeheatSetpointSensor(WeheatSensor):
         if data is None:
             return {}
 
+        mode = data.get(KEY_HVAC_MODE, HVAC_MODE_HEAT)
+        final = data.get(KEY_T_DEFINITIEF)
         s = float(data.get(KEY_T_STOOKLIJN) or 0.0)
         kc = float(data.get(KEY_T_KAMER_COMP) or 0.0)
+
+        # OFF: alles uit
+        if mode == HVAC_MODE_OFF:
+            return {
+                "modus": "uit",
+                "formule": "warmtepomp uit — geen setpoint",
+            }
+
+        # COOL: simpel formaat, geen stooklijn/correcties
+        if mode == HVAC_MODE_COOL:
+            return {
+                "modus": "koelen",
+                "formule": (
+                    f"koelaanvoer {s:.1f} {_fmt(-kc, signed=True)} (boost)"
+                    f" = {final:.1f}"
+                ),
+                "koelaanvoer_basis": s,
+                "kamer_boost": -kc,
+                "min_supply": 15.0,
+            }
+
+        # HEAT: volledige opbouw met alle correcties
         w = float(data.get(KEY_T_WINDCHILL) or 0.0)
         z = float(data.get(KEY_T_ZON) or 0.0)
         p = float(data.get(KEY_T_PRIJS) or 0.0)
-        final = data.get(KEY_T_DEFINITIEF)
-
         raw_sum = round(s + kc + w - z + p, 2)
         opts = self.coordinator.entry.options
         t_min = float(opts.get(CONF_T_MIN, DEFAULT_T_MIN))
@@ -247,6 +273,7 @@ class WeheatSetpointSensor(WeheatSensor):
             formule += f" → clamp[{t_min:.1f}, {t_max:.1f}] = {final:.1f}"
 
         return {
+            "modus": "verwarmen",
             "formule": formule,
             "stooklijn_basis": s,
             "kamercompensatie": kc,
