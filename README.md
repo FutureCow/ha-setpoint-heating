@@ -155,6 +155,8 @@ Alles wat je kunt bijregelen, op één rij:
 - Max prijscorrectie (0–5°C, default 3.0)
 - Leersnelheid adaptieve stooklijn (0–0.5°C/uur, default 0.1, 0 = uit)
 - Koelaanvoertemperatuur (15–25°C, default 18°C) — alleen actief in COOL-modus
+- Stookgrens (10–25°C buiten, default 17°C) — boven deze drempel stopt verwarmen automatisch
+- Koelgrens (15–30°C buiten, default 22°C) — onder deze drempel stopt koelen automatisch
 
 ### Via climate-entiteit
 - Gewenste kamertemperatuur
@@ -217,6 +219,17 @@ Onder device "WeHeat OpenTherm" verschijnen automatisch:
 - `climate.…_verwarmingsdoelwit` — doeltemperatuur
 - `number.…_kamercompensatiefactor`, `_minimale_aanvoertemperatuur`, `_maximale_aanvoertemperatuur`, `_vooruitkijkvenster`, `_max_prijscorrectie`, `_leersnelheid` — instelbare parameters
 - `button.…_reset_adaptieve_stooklijn` — wis leerstaat
+
+## Stook- en koelgrens (zomerstop / winterstop)
+
+De climate-mode is wat jij wilt; de **actieve modus** is wat er echt gebeurt na een buitentemp-check. Sinds v1.5:
+
+- **Stookgrens** (default 17°C): bij HEAT-modus + buitentemp ≥ stookgrens → actieve modus wordt `off`, warmtepomp stopt
+- **Koelgrens** (default 22°C): bij COOL-modus + buitentemp ≤ koelgrens → actieve modus wordt `off`
+
+De ESP leest `sensor.weheat_opentherm_actieve_modus` rechtstreeks en zet `ch_enable` / `cooling_enable` op die basis. Geen `t_set` meer geschreven in `off`.
+
+Voorbeeld: kamer 21°C, buiten 20°C, climate=HEAT, stookgrens=17 → 20 ≥ 17 → **actieve modus = off** → warmtepomp doet niks. Zet je stookgrens op 25 dan zou hij wél verwarmen.
 
 ## Koelen
 

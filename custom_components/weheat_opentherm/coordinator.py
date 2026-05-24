@@ -17,12 +17,14 @@ from .const import (
     CONF_EXPENSIVE_SAVING_DELTA,
     CONF_FORECAST_HOURS,
     CONF_HVAC_MODE,
+    CONF_KOELGRENS,
     CONF_LEARNING_RATE,
     CONF_MAX_PRICE_CORRECTION,
     CONF_OUTDOOR_TEMP_SENSOR,
     CONF_PRICE_SENSOR,
     CONF_ROOM_TEMP_SENSOR,
     CONF_SETPOINT_ENTITY,
+    CONF_STOOKGRENS,
     CONF_SUN_PARTLYCLOUDY,
     CONF_SUN_SUNNY,
     CONF_T_MAX,
@@ -38,8 +40,10 @@ from .const import (
     DEFAULT_EXPENSIVE_SAVING_DELTA,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_HVAC_MODE,
+    DEFAULT_KOELGRENS,
     DEFAULT_LEARNING_RATE,
     DEFAULT_MAX_PRICE_CORRECTION,
+    DEFAULT_STOOKGRENS,
     DEFAULT_SUN_PARTLYCLOUDY,
     DEFAULT_SUN_SUNNY,
     DEFAULT_T_MAX,
@@ -47,8 +51,10 @@ from .const import (
     DEFAULT_TARGET_TEMP,
     DOMAIN,
     HVAC_MODE_COOL,
+    HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
+    KEY_EFFECTIVE_MODE,
     KEY_HVAC_MODE,
     KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
@@ -113,10 +119,20 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Instellingen ophalen (met standaardwaarden als terugval)
         target_temp: float = self._opt(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP)
         hvac_mode: str = self._opt(CONF_HVAC_MODE, DEFAULT_HVAC_MODE)
+        stookgrens: float = self._opt(CONF_STOOKGRENS, DEFAULT_STOOKGRENS)
+        koelgrens: float = self._opt(CONF_KOELGRENS, DEFAULT_KOELGRENS)
 
-        # OFF: geen setpoint schrijven; ESPHome zet beide flags uit via climate-mode.
-        if hvac_mode == HVAC_MODE_OFF:
-            await self.learning.async_load()  # blijf state bewaren
+        # Bepaal effectieve modus o.b.v. user-mode + buitentemp-grenzen
+        if hvac_mode == HVAC_MODE_HEAT and outdoor_temp >= stookgrens:
+            effective_mode = HVAC_MODE_OFF  # te warm voor verwarmen
+        elif hvac_mode == HVAC_MODE_COOL and outdoor_temp <= koelgrens:
+            effective_mode = HVAC_MODE_OFF  # te koud voor koelen
+        else:
+            effective_mode = hvac_mode
+
+        # OFF (door gebruiker OF door grenscheck): geen setpoint schrijven.
+        if effective_mode == HVAC_MODE_OFF:
+            await self.learning.async_load()
             return {
                 KEY_OUTDOOR_TEMP: outdoor_temp,
                 KEY_ROOM_TEMP: room_temp,
@@ -128,11 +144,12 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 KEY_T_DEFINITIEF: None,
                 KEY_CURRENT_PRICE: 0.0,
                 KEY_OFFSETS: self.learning.offsets,
-                KEY_HVAC_MODE: HVAC_MODE_OFF,
+                KEY_HVAC_MODE: hvac_mode,
+                KEY_EFFECTIVE_MODE: HVAC_MODE_OFF,
             }
 
         # COOL: vaste koelaanvoer met kleine kamer-overschrijdings-boost.
-        if hvac_mode == HVAC_MODE_COOL:
+        if effective_mode == HVAC_MODE_COOL:
             cooling_supply: float = self._opt(
                 CONF_COOLING_SUPPLY_TEMP, DEFAULT_COOLING_SUPPLY_TEMP
             )
@@ -158,7 +175,8 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 KEY_T_DEFINITIEF: t_definitief,
                 KEY_CURRENT_PRICE: 0.0,
                 KEY_OFFSETS: self.learning.offsets,
-                KEY_HVAC_MODE: HVAC_MODE_COOL,
+                KEY_HVAC_MODE: hvac_mode,
+                KEY_EFFECTIVE_MODE: HVAC_MODE_COOL,
             }
 
         # HEAT (default): bestaande stooklijn-berekening
@@ -234,6 +252,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             KEY_CURRENT_PRICE: current_price,
             KEY_OFFSETS: self.learning.offsets,
             KEY_HVAC_MODE: hvac_mode,
+            KEY_EFFECTIVE_MODE: HVAC_MODE_HEAT,
         }
 
     def _read_sensor(self, entity_id: str) -> float | None:

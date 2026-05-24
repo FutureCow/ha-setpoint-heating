@@ -168,10 +168,11 @@ text_sensor:
     ip_address:
       name: "IP-adres"
 
-  # Leest de climate-mode uit HA (heat / cool / off).
-  # De binary_sensors heat_mode_active / cool_mode_active gebruiken deze
-  # state om de OpenTherm ch_enable / cooling_enable bits te zetten.
+  # Leest de EFFECTIEVE modus uit de integratie (heat / cool / off).
+  # Verschil met climate.hvac_mode: deze sensor houdt rekening met de
+  # stookgrens en koelgrens. Bij climate=HEAT maar buitentemp boven stookgrens
+  # geeft deze "off" terug — warmtepomp stopt automatisch.
   - platform: homeassistant
     id: climate_mode
-    name: "Modus (van HA climate)"
-    entity_id: climate.weheat_opentherm_verwarmingsdoelwit
+    name: "Actieve modus (van integratie)"
+    entity_id: sensor.weheat_opentherm_actieve_modus
