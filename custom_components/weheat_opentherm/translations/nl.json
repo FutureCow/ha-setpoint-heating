@@ -106,7 +106,8 @@
       "t_max": { "name": "Maximale aanvoertemperatuur" },
       "forecast_hours": { "name": "Vooruitkijkvenster" },
       "max_price_correction": { "name": "Max prijscorrectie" },
-      "learning_rate": { "name": "Leersnelheid (0 = uit)" }
+      "learning_rate": { "name": "Leersnelheid (0 = uit)" },
+      "cooling_supply_temp": { "name": "Koelaanvoertemperatuur" }
     },
     "climate": {
       "thermostat": { "name": "Verwarmingsdoelwit" }

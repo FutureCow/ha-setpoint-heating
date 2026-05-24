@@ -154,9 +154,11 @@ Alles wat je kunt bijregelen, op één rij:
 - Vooruitkijkvenster (1–6 uur, default 3)
 - Max prijscorrectie (0–5°C, default 3.0)
 - Leersnelheid adaptieve stooklijn (0–0.5°C/uur, default 0.1, 0 = uit)
+- Koelaanvoertemperatuur (15–25°C, default 18°C) — alleen actief in COOL-modus
 
 ### Via climate-entiteit
 - Gewenste kamertemperatuur
+- HVAC-modus: **Verwarmen** (stooklijn-berekening) / **Koelen** (vaste koelaanvoer) / **Uit** (warmtepomp stopt)
 
 ### Via options flow (3 stappen)
 - **Stap 1 — Temperatuurinstellingen:** doel, min/max, factoren
@@ -215,6 +217,36 @@ Onder device "WeHeat OpenTherm" verschijnen automatisch:
 - `climate.…_verwarmingsdoelwit` — doeltemperatuur
 - `number.…_kamercompensatiefactor`, `_minimale_aanvoertemperatuur`, `_maximale_aanvoertemperatuur`, `_vooruitkijkvenster`, `_max_prijscorrectie`, `_leersnelheid` — instelbare parameters
 - `button.…_reset_adaptieve_stooklijn` — wis leerstaat
+
+## Koelen
+
+Sinds v1.4 ondersteunt de integratie ook **koeling** via dezelfde climate-entiteit. Schakel naar **COOL** in HA → de coordinator stuurt een koelaanvoer-setpoint i.p.v. de stooklijn-berekening, en de ESP zet automatisch `cooling_enable` aan i.p.v. `ch_enable`.
+
+### Koelaanvoer-berekening (simpel maar effectief)
+
+```
+basis = koelaanvoertemperatuur (instelbaar 15–25°C, default 18°C)
+boost = clamp(kamer_temp − doel_temp, -2, +2)
+       ↑ kamer warmer dan doel → boost positief → supply lager → meer koeling
+       ↑ kamer onder doel       → boost negatief → supply hoger → minder koeling
+setpoint = max(15.0, basis − boost)   # condensatie-grens
+```
+
+De **15°C ondergrens** voorkomt condensatie op vloer/wandverwarming. Wil je sterker koelen, verlaag de `koelaanvoertemperatuur` zelf.
+
+### Wat de ESP doet bij modus-wissel
+
+| Climate-modus | OpenTherm flags | t_set wordt |
+|---|---|---|
+| **HEAT** | `ch_enable=ON`, `cooling_enable=OFF` | stooklijn-berekening (incl. correcties + leer-offsets) |
+| **COOL** | `ch_enable=OFF`, `cooling_enable=ON` | vaste koelaanvoer + kamer-boost |
+| **OFF** | beide `OFF` | niet meer geschreven; warmtepomp stopt |
+
+Geen handmatige switches meer nodig — de ESP leest `climate.weheat_opentherm_verwarmingsdoelwit` rechtstreeks uit en zet de flags automatisch.
+
+### Leren in COOL-mode?
+
+Nee, alleen tijdens HEAT loopt de adaptieve leerlaag. De geleerde offsets blijven bewaard tussen seizoenen — na de zomer pakt het systeem in HEAT-modus direct verder waar het was.
 
 ## Tips & FAQ
 

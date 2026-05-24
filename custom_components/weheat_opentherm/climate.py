@@ -16,12 +16,24 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    CONF_HVAC_MODE,
     CONF_TARGET_TEMP,
+    DEFAULT_HVAC_MODE,
     DEFAULT_TARGET_TEMP,
     DOMAIN,
+    HVAC_MODE_COOL,
+    HVAC_MODE_HEAT,
+    HVAC_MODE_OFF,
     KEY_ROOM_TEMP,
 )
 from .coordinator import WeheatCoordinator
+
+_MODE_FROM_STR = {
+    HVAC_MODE_HEAT: HVACMode.HEAT,
+    HVAC_MODE_COOL: HVACMode.COOL,
+    HVAC_MODE_OFF: HVACMode.OFF,
+}
+_STR_FROM_MODE = {v: k for k, v in _MODE_FROM_STR.items()}
 
 
 async def async_setup_entry(
@@ -43,9 +55,12 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "thermostat"
-    _attr_hvac_modes = [HVACMode.HEAT]
-    _attr_hvac_mode = HVACMode.HEAT
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL]
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
+    )
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
     _attr_min_temp = 10.0
@@ -62,6 +77,12 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
             manufacturer="WeHeat",
             model="Flint",
         )
+
+    @property
+    def hvac_mode(self) -> HVACMode:
+        """Huidige HVAC-modus uit entry.options."""
+        stored = self._entry.options.get(CONF_HVAC_MODE, DEFAULT_HVAC_MODE)
+        return _MODE_FROM_STR.get(stored, HVACMode.HEAT)
 
     @property
     def current_temperature(self) -> float | None:
@@ -85,4 +106,10 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Enige ondersteunde modus is HEAT; wijzigingen worden genegeerd."""
+        """Sla nieuwe HVAC-modus op en ververs de coordinator."""
+        mode_str = _STR_FROM_MODE.get(hvac_mode)
+        if mode_str is None:
+            return
+        new_options = {**self._entry.options, CONF_HVAC_MODE: mode_str}
+        self.hass.config_entries.async_update_entry(self._entry, options=new_options)
+        self.async_write_ha_state()

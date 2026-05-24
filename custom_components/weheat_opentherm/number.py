@@ -17,12 +17,14 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     CONF_COMPENSATION_FACTOR,
+    CONF_COOLING_SUPPLY_TEMP,
     CONF_FORECAST_HOURS,
     CONF_LEARNING_RATE,
     CONF_MAX_PRICE_CORRECTION,
     CONF_T_MAX,
     CONF_T_MIN,
     DEFAULT_COMPENSATION_FACTOR,
+    DEFAULT_COOLING_SUPPLY_TEMP,
     DEFAULT_FORECAST_HOURS,
     DEFAULT_LEARNING_RATE,
     DEFAULT_MAX_PRICE_CORRECTION,
@@ -111,6 +113,18 @@ NUMBERS: tuple[WeheatNumberDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         mode=NumberMode.SLIDER,
         default=DEFAULT_LEARNING_RATE,
+        entity_category=EntityCategory.CONFIG,
+    ),
+    WeheatNumberDescription(
+        key="cooling_supply_temp",
+        option_key=CONF_COOLING_SUPPLY_TEMP,
+        translation_key="cooling_supply_temp",
+        native_min_value=15.0,
+        native_max_value=25.0,
+        native_step=0.5,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        mode=NumberMode.SLIDER,
+        default=DEFAULT_COOLING_SUPPLY_TEMP,
         entity_category=EntityCategory.CONFIG,
     ),
 )
