@@ -9,14 +9,16 @@
           "outdoor_temp_sensor": "Buitentemperatuursensor",
           "weather_entity": "Weer-entiteit (optioneel)",
           "price_sensor": "Energieprijssensor (optioneel)",
-          "setpoint_entity": "Setpoint input_number entiteit"
+          "setpoint_entity": "Setpoint input_number entiteit",
+          "heatpump_status_sensor": "Warmtepomp status-sensor (optioneel)"
         },
         "data_description": {
           "room_temp_sensor": "Sensor die de huidige kamertemperatuur meet.",
           "outdoor_temp_sensor": "Sensor die de buitentemperatuur meet.",
           "weather_entity": "Wordt gebruikt voor windchill- en zoncorrectie.",
           "price_sensor": "EPEX Spot, Tibber of vergelijkbaar; wordt gebruikt voor prijscorrectie.",
-          "setpoint_entity": "Optioneel: input_number als extra brug naar ESPHome. Leeg laten als ESPHome rechtstreeks sensor.weheat_opentherm_aanvoersetpoint leest."
+          "setpoint_entity": "Optioneel: input_number als extra brug naar ESPHome. Leeg laten als ESPHome rechtstreeks sensor.weheat_opentherm_aanvoersetpoint leest.",
+          "heatpump_status_sensor": "Bv. sensor.flint_p40_heat_pump uit de WeHeat integratie. Toont 'Verwarming'/'Koelen'/'Stand-by' op de climate-tegel."
         }
       }
     },
@@ -63,6 +65,16 @@
           "p4_flow": "Punt 4 – aanvoertemperatuur",
           "p5_outdoor": "Punt 5 – buitentemperatuur",
           "p5_flow": "Punt 5 – aanvoertemperatuur"
+        }
+      },
+      "extras": {
+        "title": "Extra sensoren",
+        "description": "Optionele integraties met andere sensoren in HA.",
+        "data": {
+          "heatpump_status_sensor": "Warmtepomp status-sensor"
+        },
+        "data_description": {
+          "heatpump_status_sensor": "Bv. sensor.flint_p40_heat_pump uit de WeHeat integratie — toont actueel verwarmen/koelen/stand-by op de climate-tegel via hvac_action. Leeg laten om niets te koppelen."
         }
       },
       "advanced": {

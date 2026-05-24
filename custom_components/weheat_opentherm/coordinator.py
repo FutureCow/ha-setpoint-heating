@@ -15,6 +15,7 @@ from .const import (
     CONF_CURVE_POINTS,
     CONF_EXPENSIVE_SAVING_DELTA,
     CONF_FORECAST_HOURS,
+    CONF_HEATPUMP_STATUS_SENSOR,
     CONF_HVAC_MODE,
     CONF_LEARNING_RATE,
     CONF_MAX_PRICE_CORRECTION,
@@ -48,6 +49,7 @@ from .const import (
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
     KEY_EFFECTIVE_MODE,
+    KEY_HEATPUMP_STATUS,
     KEY_HVAC_MODE,
     KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
@@ -95,11 +97,22 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Voer alle berekeningen uit en schrijf setpoint naar input_number."""
         data = self._entry.data
 
+        opts = self._entry.options
         outdoor_sensor: str = data[CONF_OUTDOOR_TEMP_SENSOR]
         room_sensor: str = data[CONF_ROOM_TEMP_SENSOR]
         weather_entity: str | None = data.get(CONF_WEATHER_ENTITY)
         price_sensor: str | None = data.get(CONF_PRICE_SENSOR)
         setpoint_entity: str | None = data.get(CONF_SETPOINT_ENTITY)
+        # heatpump status mag in data OF options staan (options krijgt voorrang)
+        heatpump_status_sensor: str | None = (
+            opts.get(CONF_HEATPUMP_STATUS_SENSOR)
+            or data.get(CONF_HEATPUMP_STATUS_SENSOR)
+        )
+        heatpump_status: str | None = None
+        if heatpump_status_sensor:
+            state = self.hass.states.get(heatpump_status_sensor)
+            if state is not None and state.state not in ("unknown", "unavailable", ""):
+                heatpump_status = state.state
 
         outdoor_temp = self._read_sensor(outdoor_sensor)
         room_temp = self._read_sensor(room_sensor)
@@ -137,6 +150,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 KEY_OFFSETS: self.learning.offsets,
                 KEY_HVAC_MODE: hvac_mode,
                 KEY_EFFECTIVE_MODE: HVAC_MODE_OFF,
+                KEY_HEATPUMP_STATUS: heatpump_status,
             }
 
         # HEAT: stooklijn-berekening (enige actieve modus naast OFF)
@@ -213,6 +227,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             KEY_OFFSETS: self.learning.offsets,
             KEY_HVAC_MODE: hvac_mode,
             KEY_EFFECTIVE_MODE: HVAC_MODE_HEAT,
+            KEY_HEATPUMP_STATUS: heatpump_status,
         }
 
     def _read_sensor(self, entity_id: str) -> float | None:

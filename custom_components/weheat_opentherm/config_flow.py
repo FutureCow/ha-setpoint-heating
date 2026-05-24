@@ -16,6 +16,7 @@ from .const import (
     CONF_CURVE_POINTS,
     CONF_EXPENSIVE_SAVING_DELTA,
     CONF_FORECAST_HOURS,
+    CONF_HEATPUMP_STATUS_SENSOR,
     CONF_MAX_PRICE_CORRECTION,
     CONF_OUTDOOR_TEMP_SENSOR,
     CONF_PRICE_SENSOR,
@@ -80,6 +81,9 @@ class WeheatConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional(CONF_SETPOINT_ENTITY): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="input_number")
+                ),
+                vol.Optional(CONF_HEATPUMP_STATUS_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
                 ),
             }
         )
@@ -217,7 +221,7 @@ class WeheatOptionsFlow(OptionsFlow):
         """Stap 3: Geavanceerde correctie-instellingen."""
         if user_input is not None:
             self._pending.update(user_input)
-            return self.async_create_entry(title="", data=self._pending)
+            return await self.async_step_extras()
 
         opts = self.config_entry.options
         schema = vol.Schema(
@@ -262,3 +266,36 @@ class WeheatOptionsFlow(OptionsFlow):
         )
 
         return self.async_show_form(step_id="advanced", data_schema=schema)
+
+    async def async_step_extras(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Stap 4: Extra sensoren (bv. warmtepomp status voor hvac_action)."""
+        if user_input is not None:
+            sensor = user_input.get(CONF_HEATPUMP_STATUS_SENSOR)
+            if sensor:
+                self._pending[CONF_HEATPUMP_STATUS_SENSOR] = sensor
+            else:
+                self._pending.pop(CONF_HEATPUMP_STATUS_SENSOR, None)
+            return self.async_create_entry(title="", data=self._pending)
+
+        opts = self.config_entry.options
+        data = self.config_entry.data
+        current = opts.get(CONF_HEATPUMP_STATUS_SENSOR) or data.get(
+            CONF_HEATPUMP_STATUS_SENSOR
+        )
+
+        key = (
+            vol.Optional(CONF_HEATPUMP_STATUS_SENSOR, default=current)
+            if current
+            else vol.Optional(CONF_HEATPUMP_STATUS_SENSOR)
+        )
+        schema = vol.Schema(
+            {
+                key: selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+            }
+        )
+
+        return self.async_show_form(step_id="extras", data_schema=schema)

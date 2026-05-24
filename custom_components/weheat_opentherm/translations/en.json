@@ -9,14 +9,16 @@
           "outdoor_temp_sensor": "Outdoor temperature sensor",
           "weather_entity": "Weather entity (optional)",
           "price_sensor": "Energy price sensor (optional)",
-          "setpoint_entity": "Setpoint input_number entity"
+          "setpoint_entity": "Setpoint input_number entity",
+          "heatpump_status_sensor": "Heat pump status sensor (optional)"
         },
         "data_description": {
           "room_temp_sensor": "Sensor measuring the current room temperature.",
           "outdoor_temp_sensor": "Sensor measuring the outdoor temperature.",
           "weather_entity": "Used for wind chill and sun corrections.",
           "price_sensor": "EPEX Spot, Tibber or similar; used for price correction.",
-          "setpoint_entity": "Optional: input_number bridge for ESPHome. Leave empty when ESPHome reads sensor.weheat_opentherm_aanvoersetpoint directly."
+          "setpoint_entity": "Optional: input_number bridge for ESPHome. Leave empty when ESPHome reads sensor.weheat_opentherm_aanvoersetpoint directly.",
+          "heatpump_status_sensor": "E.g. sensor.flint_p40_heat_pump from the WeHeat integration. Shows current Heating/Cooling/Stand-by on the climate tile."
         }
       }
     },
@@ -63,6 +65,16 @@
           "p4_flow": "Point 4 – supply temperature",
           "p5_outdoor": "Point 5 – outdoor temperature",
           "p5_flow": "Point 5 – supply temperature"
+        }
+      },
+      "extras": {
+        "title": "Extra sensors",
+        "description": "Optional integrations with other HA sensors.",
+        "data": {
+          "heatpump_status_sensor": "Heat pump status sensor"
+        },
+        "data_description": {
+          "heatpump_status_sensor": "E.g. sensor.flint_p40_heat_pump from the WeHeat integration — shows actual heating/cooling/standby on the climate tile via hvac_action. Leave empty to disable."
         }
       },
       "advanced": {

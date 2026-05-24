@@ -6,6 +6,7 @@ from typing import Any
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -23,8 +24,27 @@ from .const import (
     DOMAIN,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
+    KEY_HEATPUMP_STATUS,
     KEY_ROOM_TEMP,
 )
+
+
+def _map_pump_status(state: str | None) -> HVACAction | None:
+    """Vertaal de WeHeat status-sensor naar een HVACAction.
+
+    Tolerant voor verschillende talen/varianten: matcht op substring.
+    Returns None als er niets te mappen valt (sensor ontbreekt of state leeg).
+    """
+    if not state:
+        return None
+    s = state.lower().strip()
+    if "koel" in s or "cool" in s:
+        return HVACAction.COOLING
+    if "verw" in s or "heat" in s:
+        return HVACAction.HEATING
+    if "stand" in s or "idle" in s:
+        return HVACAction.IDLE
+    return None
 from .coordinator import WeheatCoordinator
 
 _MODE_FROM_STR = {
@@ -81,6 +101,23 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         """Huidige HVAC-modus uit entry.options."""
         stored = self._entry.options.get(CONF_HVAC_MODE, DEFAULT_HVAC_MODE)
         return _MODE_FROM_STR.get(stored, HVACMode.HEAT)
+
+    @property
+    def hvac_action(self) -> HVACAction:
+        """Werkelijke activiteit van de warmtepomp.
+
+        Leest indien geconfigureerd de status-sensor van de WeHeat
+        (bv. sensor.flint_p40_heat_pump). Actieve cooling/heating wint
+        van de user-mode zodat ook intern gestuurde koeling zichtbaar is.
+        Zonder sensor: HVACAction.OFF bij mode OFF, anders IDLE.
+        """
+        data = self.coordinator.data or {}
+        pump_action = _map_pump_status(data.get(KEY_HEATPUMP_STATUS))
+        if pump_action in (HVACAction.HEATING, HVACAction.COOLING):
+            return pump_action
+        if self.hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+        return pump_action or HVACAction.IDLE
 
     @property
     def current_temperature(self) -> float | None:

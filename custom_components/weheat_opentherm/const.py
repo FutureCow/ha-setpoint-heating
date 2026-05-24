@@ -10,6 +10,7 @@ CONF_OUTDOOR_TEMP_SENSOR = "outdoor_temp_sensor"
 CONF_WEATHER_ENTITY = "weather_entity"
 CONF_PRICE_SENSOR = "price_sensor"
 CONF_SETPOINT_ENTITY = "setpoint_entity"
+CONF_HEATPUMP_STATUS_SENSOR = "heatpump_status_sensor"  # bv. sensor.flint_p40_heat_pump
 
 # Options keys (editable via options flow or number entities)
 CONF_TARGET_TEMP = "target_temp"
@@ -72,4 +73,5 @@ KEY_T_DEFINITIEF = "t_definitief"
 KEY_CURRENT_PRICE = "current_price"
 KEY_OFFSETS = "curve_offsets"  # list[float] van 5 leer-offsets
 KEY_HVAC_MODE = "hvac_mode"             # door gebruiker gekozen
-KEY_EFFECTIVE_MODE = "effective_mode"   # daadwerkelijk actief (heat/cool/off na grenscheck)
+KEY_EFFECTIVE_MODE = "effective_mode"   # daadwerkelijk actief (heat/off na stookgrens)
+KEY_HEATPUMP_STATUS = "heatpump_status" # rauwe state van de WeHeat status-sensor

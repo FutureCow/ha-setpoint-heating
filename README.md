@@ -230,9 +230,19 @@ Voorbeeld: kamer 21°C, buiten 20°C, climate=HEAT, stookgrens=17 → 20 ≥ 17 
 
 ## Koelen
 
-**Niet ondersteund** door deze integratie. De WeHeat Flint regelt koeling intern via een eigen koelstooklijn — er is geen OpenTherm-pad om koelaanvoer te sturen. Zet de WeHeat's eigen koelmodus aan/uit via de app of de fysieke knop.
+**Niet aangestuurd** door deze integratie — de WeHeat Flint regelt koeling intern via een eigen koelstooklijn (geen OpenTherm-pad). Zet de koelmodus aan/uit via de WeHeat-app of de fysieke knop. De climate-entiteit heeft daarom alleen **Verwarmen** en **Uit**.
 
-De climate-entiteit van deze integratie heeft daarom alleen **Verwarmen** en **Uit**. Tijdens "Uit" (of automatisch via stookgrens) blokkeert de ESP `ch_enable` zodat de OT-bus de warmtepomp niet aan het verwarmen probeert te krijgen; de interne koeling kan dan vrij draaien.
+### Maar wel zichtbaar maken
+Sinds v2.1 kun je de **`sensor.flint_p40_heat_pump`** (uit de officiële WeHeat integratie) koppelen via *Configureren → Extra sensoren → Warmtepomp status-sensor*. De climate-tegel toont dan via `hvac_action`:
+
+| Pomp-status | Climate-tegel laat zien |
+|---|---|
+| Verwarming | 🔥 Verwarmen |
+| Koelen | ❄️ Koelen |
+| Stand-by | 💤 Inactief |
+| Mode = Uit + pomp Stand-by | ⏻ Uit |
+
+Actief verwarmen/koelen wint altijd van de mode-keuze — je ziet dus ook wanneer de warmtepomp zelf besluit te koelen ondanks `climate=HEAT/OFF`.
 
 ## Tips & FAQ
 
