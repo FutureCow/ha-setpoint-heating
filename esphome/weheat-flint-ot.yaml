@@ -56,6 +56,7 @@ opentherm:
   # een betere keuze dan async (false). Iets trager maar stabieler.
   sync_mode: true
   t_set: stooklijn_setpoint
+  t_room: kamertemperatuur
   # ch_enable wordt beheerd door ch_enable_switch beneden, die automatisch
   # wordt gezet door de automation op text_sensor "actieve_modus".
   # Koelen gaat via de interne stooklijn van de WeHeat (geen OpenTherm).
@@ -91,10 +92,15 @@ sensor:
     lambda: |-
       return id(stooklijn_setpoint).state;
 
-  # Kamertemperatuur (voor weergave/logging)
+  # Kamertemperatuur — doorgestuurd naar warmtepomp via OpenTherm t_room (ID 24)
   - platform: homeassistant
     id: kamertemperatuur
     entity_id: sensor.bth_3ab2_temperatuur
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    filters:
+      - filter_out: nan
 
   # OpenTherm boilersensoren
   - platform: opentherm
