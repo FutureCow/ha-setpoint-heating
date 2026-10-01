@@ -24,6 +24,7 @@ from .const import (
     CONF_ROOM_TEMP_SENSOR,
     CONF_SETPOINT_ENTITY,
     CONF_STOOKGRENS,
+    CONF_STOOKGRENS_HYSTERESE,
     CONF_SUN_PARTLYCLOUDY,
     CONF_SUN_SUNNY,
     CONF_T_MAX,
@@ -39,6 +40,7 @@ from .const import (
     DEFAULT_LEARNING_RATE,
     DEFAULT_MAX_PRICE_CORRECTION,
     DEFAULT_STOOKGRENS,
+    DEFAULT_STOOKGRENS_HYSTERESE,
     DEFAULT_SUN_PARTLYCLOUDY,
     DEFAULT_SUN_SUNNY,
     DEFAULT_T_MAX,
@@ -87,6 +89,9 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._entry = entry
         self.learning = LearningEngine(hass, entry.entry_id)
+        # Stookgrens-hysterese: onthoudt of verwarmen nu is toegestaan.
+        # None = onbekend (na start of buiten HEAT) → bepaald op de stookgrens.
+        self._heating_allowed: bool | None = None
 
     @property
     def entry(self) -> ConfigEntry:
@@ -130,12 +135,16 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         target_temp: float = self._opt(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP)
         hvac_mode: str = self._opt(CONF_HVAC_MODE, DEFAULT_HVAC_MODE)
         stookgrens: float = self._opt(CONF_STOOKGRENS, DEFAULT_STOOKGRENS)
+        hysterese: float = self._opt(CONF_STOOKGRENS_HYSTERESE, DEFAULT_STOOKGRENS_HYSTERESE)
 
-        # Bepaal effectieve modus: HEAT alleen onder de stookgrens.
+        # Bepaal effectieve modus: HEAT alleen onder de stookgrens, met
+        # hysterese zodat schommelen rond de grens niet steeds aan/uit schakelt.
         # Koelen gaat via de interne stooklijn van de WeHeat — geen OpenTherm.
-        if hvac_mode == HVAC_MODE_HEAT and outdoor_temp >= stookgrens:
-            effective_mode = HVAC_MODE_OFF  # te warm voor verwarmen
+        if hvac_mode == HVAC_MODE_HEAT:
+            heating_allowed = self._update_heating_allowed(outdoor_temp, stookgrens, hysterese)
+            effective_mode = HVAC_MODE_HEAT if heating_allowed else HVAC_MODE_OFF
         else:
+            self._heating_allowed = None
             effective_mode = hvac_mode
 
         # OFF (door gebruiker OF door stookgrens): geen setpoint schrijven.
@@ -237,6 +246,22 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             KEY_EFFECTIVE_MODE: HVAC_MODE_HEAT,
             KEY_HEATPUMP_STATUS: heatpump_status,
         }
+
+    def _update_heating_allowed(
+        self, outdoor_temp: float, stookgrens: float, hysterese: float
+    ) -> bool:
+        """Stookgrens met hysterese.
+
+        Uit zodra buiten ≥ stookgrens; pas weer aan als buiten < stookgrens −
+        hysterese. Daartussen blijft de vorige stand staan.
+        """
+        if self._heating_allowed is None:
+            self._heating_allowed = outdoor_temp < stookgrens
+        elif self._heating_allowed and outdoor_temp >= stookgrens:
+            self._heating_allowed = False
+        elif not self._heating_allowed and outdoor_temp < stookgrens - hysterese:
+            self._heating_allowed = True
+        return self._heating_allowed
 
     def _read_sensor(self, entity_id: str) -> float | None:
         """Lees de numerieke waarde van een sensor; geeft None bij onbeschikbaar."""

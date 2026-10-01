@@ -155,6 +155,7 @@ Alles wat je kunt bijregelen, op één rij:
 - Max prijscorrectie (0–5°C, default 3.0)
 - Leersnelheid adaptieve stooklijn (0–0.5°C/uur, default 0.1, 0 = uit)
 - Stookgrens (10–25°C buiten, default 17°C) — boven deze drempel stopt verwarmen automatisch
+- Stookgrens-hysterese (0–3°C, default 1.0) — pas weer verwarmen onder stookgrens − hysterese
 
 ### Via climate-entiteit
 - Gewenste kamertemperatuur
@@ -223,6 +224,7 @@ Onder device "WeHeat OpenTherm" verschijnen automatisch:
 De climate-mode is wat jij wilt; de **actieve modus** is wat er echt gebeurt na een buitentemp-check.
 
 - **Stookgrens** (default 17°C): bij HEAT-modus + buitentemp ≥ stookgrens → actieve modus wordt `off`, warmtepomp stopt.
+- **Hysterese** (default 1°C): daarna pas weer `heat` als buitentemp < stookgrens − hysterese (dus < 16°C). Daartussen blijft de vorige stand staan, zodat schommelen rond de grens niet steeds aan/uit schakelt.
 
 De ESP leest `sensor.weheat_opentherm_actieve_modus` rechtstreeks en zet `ch_enable` op die basis. Geen `t_set` meer geschreven in `off`.
 
