@@ -120,7 +120,8 @@
       "forecast_hours": { "name": "Look-ahead window" },
       "max_price_correction": { "name": "Max price correction" },
       "learning_rate": { "name": "Learning rate (0 = off)" },
-      "stookgrens": { "name": "Heating threshold (above = no heating)" }
+      "stookgrens": { "name": "Heating threshold (above = no heating)" },
+      "stookgrens_hysterese": { "name": "Heating threshold hysteresis (back on below threshold − this)" }
     },
     "climate": {
       "thermostat": { "name": "Heating target" }

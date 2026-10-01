@@ -120,7 +120,8 @@
       "forecast_hours": { "name": "Vooruitkijkvenster" },
       "max_price_correction": { "name": "Max prijscorrectie" },
       "learning_rate": { "name": "Leersnelheid (0 = uit)" },
-      "stookgrens": { "name": "Stookgrens (boven = niet verwarmen)" }
+      "stookgrens": { "name": "Stookgrens (boven = niet verwarmen)" },
+      "stookgrens_hysterese": { "name": "Stookgrens-hysterese (weer aan onder grens − dit)" }
     },
     "climate": {
       "thermostat": { "name": "Verwarmingsdoelwit" }

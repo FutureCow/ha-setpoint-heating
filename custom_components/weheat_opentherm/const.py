@@ -31,6 +31,7 @@ CONF_SUN_PARTLYCLOUDY = "sun_partlycloudy"
 # HVAC modus (heat / off) — koelen gaat via interne stooklijn van de warmtepomp
 CONF_HVAC_MODE = "hvac_mode"
 CONF_STOOKGRENS = "stookgrens"
+CONF_STOOKGRENS_HYSTERESE = "stookgrens_hysterese"
 
 # Toegestane HVAC-modus waarden
 HVAC_MODE_HEAT = "heat"
@@ -51,6 +52,7 @@ DEFAULT_SUN_SUNNY = 3.0   # °C reductie bij condition "sunny"
 DEFAULT_SUN_PARTLYCLOUDY = 2.0  # °C reductie bij condition "partlycloudy"
 DEFAULT_HVAC_MODE = HVAC_MODE_HEAT
 DEFAULT_STOOKGRENS = 17.0  # °C buiten — boven deze drempel niet meer verwarmen
+DEFAULT_STOOKGRENS_HYSTERESE = 1.0  # °C — pas weer verwarmen onder stookgrens − hysterese
 
 # Default heating curve: list of [outdoor_temp, flow_temp] pairs
 DEFAULT_CURVE_POINTS: list[list[float]] = [
