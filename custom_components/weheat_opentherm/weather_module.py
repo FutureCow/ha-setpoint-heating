@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.sun import get_astral_location
+from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -13,6 +16,9 @@ _WINDCHILL_SPEED_MIN = 4.8  # km/h
 
 _SUN_WIND_LIMIT = 15.0  # km/h – bij hogere windsnelheid geen zoncorrectie
 _MAX_SUN_CORRECTION = 4.0  # °C
+# Onder deze zonshoogte geen zoncorrectie. Nodig omdat "partlycloudy" ook
+# 's nachts gebruikt wordt (alleen "sunny" heeft een nachtvariant).
+_SUN_MIN_ELEVATION = 5.0  # graden
 
 
 def _windchill_temperature(temp_c: float, wind_kmh: float) -> float:
@@ -50,6 +56,20 @@ def _sun_correction(
     if wind_kmh >= _SUN_WIND_LIMIT:
         return 0.0
     return sun_by_condition.get(condition, 0.0)
+
+
+def _sun_is_up(hass: HomeAssistant, forecast_time: str | None) -> bool:
+    """True als de zon midden in het voorspelde uur boven _SUN_MIN_ELEVATION staat.
+
+    Zonder (leesbaar) tijdstip wordt de zon als op beschouwd, zodat de
+    correctie dan alleen op de condition blijft leunen.
+    """
+    when: datetime | None = dt_util.parse_datetime(forecast_time) if forecast_time else None
+    if when is None:
+        return True
+    location, elevation = get_astral_location(hass)
+    sun_elevation = location.solar_elevation(when + timedelta(minutes=30), elevation)
+    return sun_elevation >= _SUN_MIN_ELEVATION
 
 
 def _to_kmh(wind_speed: float, unit: str) -> float:
@@ -113,7 +133,10 @@ async def async_get_forecast_corrections(
         condition = str(entry.get("condition") or "")
 
         windchill_values.append(_windchill_delta(temp, wind))
-        sun_values.append(_sun_correction(condition, wind, sun_by_condition))
+        if _sun_is_up(hass, entry.get("datetime")):
+            sun_values.append(_sun_correction(condition, wind, sun_by_condition))
+        else:
+            sun_values.append(0.0)
 
     if not windchill_values:
         return 0.0, 0.0
