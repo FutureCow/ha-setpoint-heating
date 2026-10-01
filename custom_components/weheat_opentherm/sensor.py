@@ -262,7 +262,9 @@ class WeheatSetpointSensor(WeheatSensor):
         opts = self.coordinator.entry.options
         t_min = float(opts.get(CONF_T_MIN, DEFAULT_T_MIN))
         t_max = float(opts.get(CONF_T_MAX, DEFAULT_T_MAX))
-        was_clamped = final is not None and round(float(final), 2) != raw_sum
+        # Alleen echt begrensd als de som buiten [t_min, t_max] valt; afronden op
+        # 1 decimaal is geen begrenzing.
+        was_clamped = raw_sum < t_min or raw_sum > t_max
 
         offsets = data.get(KEY_OFFSETS) or []
         learned_adjustment = round(sum(offsets), 2) if offsets else 0.0
@@ -277,6 +279,8 @@ class WeheatSetpointSensor(WeheatSensor):
         )
         if was_clamped:
             formule += f" → clamp[{t_min:.1f}, {t_max:.1f}] = {final:.1f}"
+        elif round(raw_sum, 1) != raw_sum:
+            formule += f" ≈ {final:.1f}"
 
         return {
             "modus": "verwarmen",
