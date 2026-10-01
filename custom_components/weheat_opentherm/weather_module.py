@@ -12,7 +12,6 @@ _WINDCHILL_TEMP_MAX = 10.0
 _WINDCHILL_SPEED_MIN = 4.8  # km/h
 
 _SUN_WIND_LIMIT = 15.0  # km/h – bij hogere windsnelheid geen zoncorrectie
-_MAX_WINDCHILL_CORRECTION = 4.0  # °C
 _MAX_SUN_CORRECTION = 4.0  # °C
 
 
@@ -32,11 +31,14 @@ def _windchill_temperature(temp_c: float, wind_kmh: float) -> float:
     return 13.12 + 0.6215 * temp_c - 11.37 * v016 + 0.3965 * temp_c * v016
 
 
-def _windchill_correction(temp_c: float, wind_kmh: float) -> float:
-    """Extra opwarming nodig door windchill, begrensd op +4°C."""
+def _windchill_delta(temp_c: float, wind_kmh: float) -> float:
+    """Verschil lucht- minus gevoelstemperatuur in buiten-°C (≥ 0).
+
+    Dit is géén aanvoer-correctie: heating_curve.calculate_windchill_correction
+    rekent het via de stooklijn om naar aanvoer-°C.
+    """
     feels_like = _windchill_temperature(temp_c, wind_kmh)
-    correction = max(0.0, temp_c - feels_like)
-    return min(_MAX_WINDCHILL_CORRECTION, correction)
+    return max(0.0, temp_c - feels_like)
 
 
 def _sun_correction(
@@ -76,9 +78,9 @@ async def async_get_forecast_corrections(
         sun_partlycloudy: Zoncorrectie (°C) bij deels bewolkt weer.
 
     Returns:
-        Tuple (windchill_correctie, zon_correctie) in °C:
-        - windchill_correctie: maximum over venster (ergste kou)
-        - zon_correctie: gemiddelde over venster (verwachte zonneopbrengst)
+        Tuple (windchill_delta, zon_correctie):
+        - windchill_delta: buiten-°C, maximum over venster (ergste kou)
+        - zon_correctie: aanvoer-°C, gemiddelde over venster (verwachte zonneopbrengst)
     """
     sun_by_condition = {
         "sunny": sun_sunny,
@@ -110,7 +112,7 @@ async def async_get_forecast_corrections(
         wind = _to_kmh(wind_raw, wind_unit)
         condition = str(entry.get("condition") or "")
 
-        windchill_values.append(_windchill_correction(temp, wind))
+        windchill_values.append(_windchill_delta(temp, wind))
         sun_values.append(_sun_correction(condition, wind, sun_by_condition))
 
     if not windchill_values:

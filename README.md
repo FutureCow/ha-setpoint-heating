@@ -135,7 +135,7 @@ target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 | Module | Bestand | Doel |
 |---|---|---|
 | **Stooklijn** | `heating_curve.py` | 5 instelbare (buitentemp → aanvoertemp) punten met lineaire interpolatie + kamercompensatie (±5°C) |
-| **Weer** | `weather_module.py` | Windchill (JAG/TI formule, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster |
+| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; de helft van het verschil telt als kouder buiten, via de stooklijnhelling omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster |
 | **Prijs** | `energy_prices.py` | μ/σ-analyse op uursrijzen; goedkoop → voorverwarmen, duur → bezuinigen (±max correctie) |
 
 ### Adaptieve laag
