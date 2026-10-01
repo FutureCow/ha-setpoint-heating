@@ -62,7 +62,11 @@ from .const import (
     KEY_T_ZON,
 )
 from .energy_prices import async_get_price_data, calculate_price_correction
-from .heating_curve import calculate_heating_curve, calculate_room_compensation
+from .heating_curve import (
+    calculate_heating_curve,
+    calculate_room_compensation,
+    calculate_windchill_correction,
+)
 from .learning import LearningEngine
 from .weather_module import async_get_forecast_corrections
 
@@ -175,12 +179,15 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Module 2: Weersvoorspelling
         t_windchill, t_zon = 0.0, 0.0
         if weather_entity:
-            t_windchill, t_zon = await async_get_forecast_corrections(
+            windchill_delta, t_zon = await async_get_forecast_corrections(
                 self.hass,
                 weather_entity,
                 forecast_hours,
                 sun_sunny=sun_sunny,
                 sun_partlycloudy=sun_partlycloudy,
+            )
+            t_windchill = calculate_windchill_correction(
+                outdoor_temp, windchill_delta, adjusted_curve
             )
 
         # Module 3: Dynamische energieprijzen
