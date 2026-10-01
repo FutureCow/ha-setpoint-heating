@@ -23,6 +23,7 @@ _STABLE_TARGET_MIN = 60           # min — geen doeltemp-wijziging in deze peri
 _STABLE_OUTDOOR_RATE = 1.0        # °C/uur — max buitentemp-veranderingssnelheid
 _OUTDOOR_REF_INTERVAL = timedelta(minutes=10)
 _SAVE_DEBOUNCE = 300              # seconden — debounce voor disk writes
+_PUMP_HEATING_STATE = "heating"   # state van de WeHeat status-sensor bij verwarmen
 
 
 class LearningEngine:
@@ -31,6 +32,8 @@ class LearningEngine:
     Werking:
       1. Elke coordinator-tick: indien stabiel (geen doeltemp-wijziging, trage
          buitentemp), bewaar (kamer_error) in de bucket van afgeronde buitentemp.
+         Te warm terwijl de pomp niet verwarmt telt niet: dat komt door zon of
+         weer, niet door de stooklijn.
       2. Eén keer per uur: per curve-punt het dichtstbijzijnde bucket bekijken,
          en bij persistente afwijking >0.3°C de offset met learning_rate aanpassen.
       3. Offsets begrensd op ±5°C t.o.v. originele curve.
@@ -57,6 +60,7 @@ class LearningEngine:
             "last_target_change_iso": None,
             "last_outdoor_temp": None,
             "last_outdoor_iso": None,
+            "outdoor_stable": False,
             "last_learn_iso": None,
         }
 
@@ -102,8 +106,13 @@ class LearningEngine:
         target_temp: float,
         curve_points: list[list[float]],
         learning_rate: float,
+        heatpump_status: str | None = None,
     ) -> None:
-        """Voer één observatie-cyclus uit en mogelijk een leerstap."""
+        """Voer één observatie-cyclus uit en mogelijk een leerstap.
+
+        heatpump_status: rauwe state van de WeHeat status-sensor, of None als
+        die niet gekoppeld is (dan wordt er niet op gefilterd).
+        """
         await self.async_load()
         now = dt_util.utcnow()
 
@@ -132,8 +141,14 @@ class LearningEngine:
         target_stable = self._check_target_stable(now)
 
         # Observatie als alles stabiel is
-        if outdoor_stable and target_stable:
-            self._observe(outdoor_temp, target_temp - room_temp, now)
+        error = target_temp - room_temp
+        overheated_without_heating = (
+            error < 0
+            and heatpump_status is not None
+            and heatpump_status != _PUMP_HEATING_STATE
+        )
+        if outdoor_stable and target_stable and not overheated_without_heating:
+            self._observe(outdoor_temp, error, now)
 
         # Eens per uur: leerstap
         last_learn_iso = self._data.get("last_learn_iso")
@@ -165,7 +180,11 @@ class LearningEngine:
         b["last_iso"] = now.isoformat()
 
     def _update_and_check_outdoor(self, outdoor_temp: float, now) -> bool:
-        """True als buitentemp ≥10 min stabiel is met rate <1°C/u."""
+        """True als buitentemp ≥10 min stabiel is met rate <1°C/u.
+
+        De snelheid wordt eens per 10 min gemeten; daartussen geldt de laatste
+        uitkomst, zodat elke tick een observatie kan opleveren.
+        """
         last = self._data.get("last_outdoor_temp")
         last_iso = self._data.get("last_outdoor_iso")
 
@@ -180,13 +199,14 @@ class LearningEngine:
 
         delta = now - last_dt
         if delta < _OUTDOOR_REF_INTERVAL:
-            return False  # te kort referentievenster
+            return bool(self._data.get("outdoor_stable"))
 
         rate_per_hour = abs(outdoor_temp - last) / delta.total_seconds() * 3600
         # Verschuif referentie voor volgende cyclus
         self._data["last_outdoor_temp"] = outdoor_temp
         self._data["last_outdoor_iso"] = now.isoformat()
-        return rate_per_hour < _STABLE_OUTDOOR_RATE
+        self._data["outdoor_stable"] = rate_per_hour < _STABLE_OUTDOOR_RATE
+        return self._data["outdoor_stable"]
 
     def _check_target_stable(self, now) -> bool:
         """True als de doeltemperatuur ≥60 min ongewijzigd is."""
