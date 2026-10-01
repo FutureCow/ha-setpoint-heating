@@ -70,6 +70,7 @@ KEY_T_STOOKLIJN = "t_stooklijn"
 KEY_T_KAMER_COMP = "t_kamer_comp"
 KEY_T_WINDCHILL = "t_windchill"
 KEY_T_ZON = "t_zon"
+KEY_SUN_SOURCE = "sun_source"  # forecast.solar / weer / gemengd
 KEY_T_PRIJS = "t_prijs"
 KEY_T_DEFINITIEF = "t_definitief"
 KEY_CURRENT_PRICE = "current_price"

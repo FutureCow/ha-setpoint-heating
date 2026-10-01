@@ -135,8 +135,18 @@ target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 | Module | Bestand | Doel |
 |---|---|---|
 | **Stooklijn** | `heating_curve.py` | 5 instelbare (buitentemp → aanvoertemp) punten met lineaire interpolatie + kamercompensatie (±5°C) |
-| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; de helft van het verschil telt als kouder buiten, via de stooklijnhelling omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C, alleen uren met de zon > 5° boven de horizon) over instelbaar vooruitkijkvenster |
+| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; de helft van het verschil telt als kouder buiten, via de stooklijnhelling omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster. Zon bij voorkeur uit **Forecast.Solar** (automatisch, zie hieronder), anders uit het weertype (alleen uren met de zon > 5° boven de horizon) |
 | **Prijs** | `energy_prices.py` | μ/σ-analyse op uursrijzen; goedkoop → voorverwarmen, duur → bezuinigen (±max correctie) |
+
+### Zoncorrectie via Forecast.Solar (optioneel, automatisch)
+
+Is de HA-integratie **Forecast.Solar** ingesteld, dan gebruikt de zoncorrectie per uur de opbrengstprognose in plaats van het weertype — dezelfde uurprognose als in het energiedashboard, opgeteld over alle Forecast.Solar-entries en -vlakken.
+
+- Fractie volle zon = verwachte kWh in dat uur ÷ kWp ÷ 0,6 (max 1); correctie = fractie × *zonnig*-instelling.
+- Werkt ook als de Forecast.Solar-sensoren tijdelijk `unavailable` zijn: de laatst opgehaalde prognose blijft gebruikt.
+- Dekt de prognose een uur niet (bv. verouderd), dan valt dat uur terug op het weertype.
+- Bij wind ≥ 15 km/u geen zoncorrectie (zoals bij het weertype).
+- Welke bron gebruikt is staat in het attribuut `zon_bron` van de aanvoersetpoint-sensor (`forecast.solar`, `weer` of `gemengd`).
 
 ### Adaptieve laag
 

@@ -37,6 +37,7 @@ from .const import (
     KEY_T_STOOKLIJN,
     KEY_T_WINDCHILL,
     KEY_T_ZON,
+    KEY_SUN_SOURCE,
 )
 from .coordinator import WeheatCoordinator
 
@@ -289,6 +290,7 @@ class WeheatSetpointSensor(WeheatSensor):
             "kamercompensatie": kc,
             "windchill_correctie": w,
             "zon_correctie": -z,
+            "zon_bron": data.get(KEY_SUN_SOURCE),
             "prijs_correctie": p,
             "som_voor_begrenzing": raw_sum,
             "t_min": t_min,

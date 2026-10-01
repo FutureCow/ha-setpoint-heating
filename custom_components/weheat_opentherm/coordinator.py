@@ -62,6 +62,7 @@ from .const import (
     KEY_T_STOOKLIJN,
     KEY_T_WINDCHILL,
     KEY_T_ZON,
+    KEY_SUN_SOURCE,
 )
 from .energy_prices import async_get_price_data, calculate_price_correction
 from .heating_curve import (
@@ -187,8 +188,9 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Module 2: Weersvoorspelling
         t_windchill, t_zon = 0.0, 0.0
+        sun_source: str | None = None
         if weather_entity:
-            windchill_delta, t_zon = await async_get_forecast_corrections(
+            windchill_delta, t_zon, sun_source = await async_get_forecast_corrections(
                 self.hass,
                 weather_entity,
                 forecast_hours,
@@ -238,6 +240,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             KEY_T_KAMER_COMP: t_kamer_comp,
             KEY_T_WINDCHILL: t_windchill,
             KEY_T_ZON: t_zon,
+            KEY_SUN_SOURCE: sun_source,
             KEY_T_PRIJS: t_prijs,
             KEY_T_DEFINITIEF: t_definitief,
             KEY_CURRENT_PRICE: current_price,

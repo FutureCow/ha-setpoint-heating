@@ -8,6 +8,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import dt as dt_util
 
+from .solar_forecast import async_get_pv_forecast
+
 _LOGGER = logging.getLogger(__name__)
 
 # Windchill JAG/TI formule is alleen geldig bij T ≤ 10°C en v ≥ 4.8 km/h
@@ -19,6 +21,10 @@ _MAX_SUN_CORRECTION = 4.0  # °C
 # Onder deze zonshoogte geen zoncorrectie. Nodig omdat "partlycloudy" ook
 # 's nachts gebruikt wordt (alleen "sunny" heeft een nachtvariant).
 _SUN_MIN_ELEVATION = 5.0  # graden
+
+SUN_SOURCE_PV = "forecast.solar"
+SUN_SOURCE_WEATHER = "weer"
+SUN_SOURCE_MIXED = "gemengd"
 
 
 def _windchill_temperature(temp_c: float, wind_kmh: float) -> float:
@@ -87,8 +93,11 @@ async def async_get_forecast_corrections(
     hours: int,
     sun_sunny: float,
     sun_partlycloudy: float,
-) -> tuple[float, float]:
+) -> tuple[float, float, str | None]:
     """Haal weersvoorspelling op en bereken correcties voor het opgegeven venster.
+
+    De zoncorrectie per uur komt bij voorkeur uit de Forecast.Solar-prognose
+    (fractie van volle zon × sun_sunny); valt die weg, dan uit het weertype.
 
     Args:
         hass: Home Assistant instantie.
@@ -98,9 +107,10 @@ async def async_get_forecast_corrections(
         sun_partlycloudy: Zoncorrectie (°C) bij deels bewolkt weer.
 
     Returns:
-        Tuple (windchill_delta, zon_correctie):
+        Tuple (windchill_delta, zon_correctie, zon_bron):
         - windchill_delta: buiten-°C, maximum over venster (ergste kou)
         - zon_correctie: aanvoer-°C, gemiddelde over venster (verwachte zonneopbrengst)
+        - zon_bron: SUN_SOURCE_PV, SUN_SOURCE_WEATHER of SUN_SOURCE_MIXED; None zonder data
     """
     sun_by_condition = {
         "sunny": sun_sunny,
@@ -117,14 +127,17 @@ async def async_get_forecast_corrections(
         forecasts: list[dict] = response.get(weather_entity, {}).get("forecast", [])
     except Exception as exc:  # noqa: BLE001
         _LOGGER.warning("Kan weersvoorspelling niet ophalen voor %s: %s", weather_entity, exc)
-        return 0.0, 0.0
+        return 0.0, 0.0, None
 
     # Bepaal windsnelheidseenheid van de weer-entiteit
     state = hass.states.get(weather_entity)
     wind_unit = (state.attributes.get("wind_speed_unit", "km/h") if state else "km/h") or "km/h"
 
+    pv = await async_get_pv_forecast(hass)
+
     windchill_values: list[float] = []
     sun_values: list[float] = []
+    sources: set[str] = set()
 
     for entry in forecasts[:hours]:
         temp = float(entry.get("temperature") or 0.0)
@@ -133,17 +146,29 @@ async def async_get_forecast_corrections(
         condition = str(entry.get("condition") or "")
 
         windchill_values.append(_windchill_delta(temp, wind))
-        if _sun_is_up(hass, entry.get("datetime")):
-            sun_values.append(_sun_correction(condition, wind, sun_by_condition))
+
+        forecast_time = entry.get("datetime")
+        hour_start = dt_util.parse_datetime(forecast_time) if forecast_time else None
+        fraction = pv.sun_fraction(hour_start) if pv and hour_start else None
+        if fraction is not None:
+            sources.add(SUN_SOURCE_PV)
+            sun = 0.0 if wind >= _SUN_WIND_LIMIT else fraction * sun_sunny
         else:
-            sun_values.append(0.0)
+            sources.add(SUN_SOURCE_WEATHER)
+            sun = (
+                _sun_correction(condition, wind, sun_by_condition)
+                if _sun_is_up(hass, forecast_time)
+                else 0.0
+            )
+        sun_values.append(sun)
 
     if not windchill_values:
-        return 0.0, 0.0
+        return 0.0, 0.0, None
 
     wc = round(max(windchill_values), 2)
     sc = round(
         min(_MAX_SUN_CORRECTION, sum(sun_values) / len(sun_values)),
         2,
     )
-    return wc, sc
+    source = sources.pop() if len(sources) == 1 else (SUN_SOURCE_MIXED if sources else None)
+    return wc, sc, source
