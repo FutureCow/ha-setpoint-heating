@@ -107,11 +107,14 @@ class LearningEngine:
         curve_points: list[list[float]],
         learning_rate: float,
         heatpump_status: str | None = None,
+        flow_setpoint: float | None = None,
     ) -> None:
         """Voer één observatie-cyclus uit en mogelijk een leerstap.
 
         heatpump_status: rauwe state van de WeHeat status-sensor, of None als
-        die niet gekoppeld is (dan wordt er niet op gefilterd).
+        die niet gekoppeld is.
+        flow_setpoint: het berekende aanvoersetpoint; ligt dat niet boven de
+        kamertemperatuur, dan kan de verwarming de kamer niet opwarmen.
         """
         await self.async_load()
         now = dt_util.utcnow()
@@ -142,10 +145,12 @@ class LearningEngine:
 
         # Observatie als alles stabiel is
         error = target_temp - room_temp
-        overheated_without_heating = (
-            error < 0
-            and heatpump_status is not None
-            and heatpump_status != _PUMP_HEATING_STATE
+        pump_not_heating = (
+            heatpump_status is not None and heatpump_status != _PUMP_HEATING_STATE
+        )
+        setpoint_below_room = flow_setpoint is not None and flow_setpoint <= room_temp
+        overheated_without_heating = error < 0 and (
+            pump_not_heating or setpoint_below_room
         )
         if outdoor_stable and target_stable and not overheated_without_heating:
             self._observe(outdoor_temp, error, now)

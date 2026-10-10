@@ -154,7 +154,6 @@ Is de HA-integratie **Forecast.Solar** ingesteld, dan gebruikt de zoncorrectie p
 - Fractie volle zon = verwachte kWh in dat uur ÷ kWp ÷ 0,6 (max 1); correctie = fractie × *zonnig*-instelling.
 - Werkt ook als de Forecast.Solar-sensoren tijdelijk `unavailable` zijn: de laatst opgehaalde prognose blijft gebruikt.
 - Dekt de prognose een uur niet (bv. verouderd), dan valt dat uur terug op het weertype.
-- Bij wind ≥ 15 km/u geen zoncorrectie (zoals bij het weertype).
 - Welke bron gebruikt is staat in het attribuut `zon_bron` van de aanvoersetpoint-sensor (`forecast.solar`, `weer` of `gemengd`).
 
 ### Adaptieve laag
