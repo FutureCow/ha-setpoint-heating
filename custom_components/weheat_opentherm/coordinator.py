@@ -231,6 +231,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             curve_points=curve_points,
             learning_rate=learning_rate,
             heatpump_status=heatpump_status,
+            flow_setpoint=t_definitief,
         )
 
         return {

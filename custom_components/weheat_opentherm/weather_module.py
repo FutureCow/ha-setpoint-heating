@@ -16,7 +16,6 @@ _LOGGER = logging.getLogger(__name__)
 _WINDCHILL_TEMP_MAX = 10.0
 _WINDCHILL_SPEED_MIN = 4.8  # km/h
 
-_SUN_WIND_LIMIT = 15.0  # km/h – bij hogere windsnelheid geen zoncorrectie
 _MAX_SUN_CORRECTION = 4.0  # °C
 # Onder deze zonshoogte geen zoncorrectie. Nodig omdat "partlycloudy" ook
 # 's nachts gebruikt wordt (alleen "sunny" heeft een nachtvariant).
@@ -53,14 +52,8 @@ def _windchill_delta(temp_c: float, wind_kmh: float) -> float:
     return max(0.0, temp_c - feels_like)
 
 
-def _sun_correction(
-    condition: str,
-    wind_kmh: float,
-    sun_by_condition: dict[str, float],
-) -> float:
-    """Opwarmreductie door zonne-instaling. Nul bij te hoge windsnelheid."""
-    if wind_kmh >= _SUN_WIND_LIMIT:
-        return 0.0
+def _sun_correction(condition: str, sun_by_condition: dict[str, float]) -> float:
+    """Opwarmreductie door zonne-instraling op basis van het weertype."""
     return sun_by_condition.get(condition, 0.0)
 
 
@@ -152,11 +145,11 @@ async def async_get_forecast_corrections(
         fraction = pv.sun_fraction(hour_start) if pv and hour_start else None
         if fraction is not None:
             sources.add(SUN_SOURCE_PV)
-            sun = 0.0 if wind >= _SUN_WIND_LIMIT else fraction * sun_sunny
+            sun = fraction * sun_sunny
         else:
             sources.add(SUN_SOURCE_WEATHER)
             sun = (
-                _sun_correction(condition, wind, sun_by_condition)
+                _sun_correction(condition, sun_by_condition)
                 if _sun_is_up(hass, forecast_time)
                 else 0.0
             )

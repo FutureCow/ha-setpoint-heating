@@ -272,12 +272,15 @@ class WeheatOptionsFlow(OptionsFlow):
     ) -> FlowResult:
         """Stap 4: Extra sensoren (bv. warmtepomp status voor hvac_action)."""
         if user_input is not None:
+            # Begin bij de bestaande opties: instellingen die niet in deze flow
+            # staan (stookgrens, hysterese, leersnelheid, modus) blijven zo behouden.
+            new_options = {**self.config_entry.options, **self._pending}
             sensor = user_input.get(CONF_HEATPUMP_STATUS_SENSOR)
             if sensor:
-                self._pending[CONF_HEATPUMP_STATUS_SENSOR] = sensor
+                new_options[CONF_HEATPUMP_STATUS_SENSOR] = sensor
             else:
-                self._pending.pop(CONF_HEATPUMP_STATUS_SENSOR, None)
-            return self.async_create_entry(title="", data=self._pending)
+                new_options.pop(CONF_HEATPUMP_STATUS_SENSOR, None)
+            return self.async_create_entry(title="", data=new_options)
 
         opts = self.config_entry.options
         data = self.config_entry.data
