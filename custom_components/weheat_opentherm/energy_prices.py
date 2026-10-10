@@ -102,26 +102,32 @@ def _normalize_to_state_scale(
 ) -> list[float]:
     """Schaal forecast-prijzen naar de eenheid van de huidige state.
 
-    Sommige integraties (bv. Zonneplan) bewaren forecast-waarden in een
-    andere eenheid (bv. integer × 1e7) dan de state. We detecteren dit door
-    de mediaan met de state te vergelijken; bij >10× verschil schalen we
-    uniform zodat de σ-vergelijking weer klopt.
+    Sommige integraties (bv. Zonneplan) bewaren forecast-waarden als integer
+    × 1e7 terwijl de state in EUR/kWh staat. De schaal is dus een macht van
+    tien; gekozen wordt de macht waarbij de huidige prijs het best in de
+    lijst terug te vinden is (het lopende uur staat er zelf in).
+
+    Schalen op de mediaan mag niet: dan valt de huidige prijs per definitie
+    op de mediaan en is geen uur ooit goedkoop of duur.
     """
-    if current_price <= 0 or len(prices) < 2:
+    if len(prices) < 2:
         return prices
-    median_p = statistics.median(prices)
-    if median_p <= 0:
-        return prices
-    ratio = median_p / current_price
-    if 0.1 <= ratio <= 10:
+
+    def mismatch(exponent: int) -> tuple[float, float]:
+        scale = 10.0**exponent
+        # Hoe ver ligt de dichtstbijzijnde geschaalde prijs van de huidige prijs?
+        distance = min(abs(p * scale - current_price) for p in prices)
+        # Bij gelijke afstand (bv. huidige prijs 0): kies de schaal waarbij
+        # de mediaan een gangbare EUR/kWh-waarde is.
+        median = abs(statistics.median(prices)) * scale
+        implausible = 0.0 if 0.01 <= median < 1.0 else 1.0
+        return (round(distance, 6), implausible + abs(exponent) * 1e-3)
+
+    best = min(range(-9, 4), key=mismatch)
+    if best == 0:
         return prices  # Zelfde schaal, geen normalisatie nodig
-    scale = current_price / median_p
-    _LOGGER.debug(
-        "Prijs-forecast geschaald met factor %.2e (median %.4g → %.4g)",
-        scale,
-        median_p,
-        median_p * scale,
-    )
+    scale = 10.0**best
+    _LOGGER.debug("Prijs-forecast geschaald met factor %.0e", scale)
     return [p * scale for p in prices]
 
 
