@@ -57,6 +57,7 @@ opentherm:
   sync_mode: true
   t_set: stooklijn_setpoint
   t_room: kamertemperatuur
+  t_room_set: kamer_setpoint
   # ch_enable wordt beheerd door ch_enable_switch beneden, die automatisch
   # wordt gezet door de automation op text_sensor "actieve_modus".
   # Koelen gaat via de interne stooklijn van de WeHeat (geen OpenTherm).
@@ -96,6 +97,19 @@ sensor:
   - platform: homeassistant
     id: kamertemperatuur
     entity_id: sensor.bth_3ab2_temperatuur
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    filters:
+      - filter_out: nan
+
+  # Gewenste kamertemperatuur — doorgestuurd via OpenTherm t_room_set (ID 16).
+  # De WeHeat toont deze alleen (anders staat er -1); de regeling zelf zit in
+  # het aanvoersetpoint van de integratie.
+  - platform: homeassistant
+    id: kamer_setpoint
+    entity_id: climate.weheat_opentherm_verwarmingsdoelwit
+    attribute: temperature
     unit_of_measurement: "°C"
     device_class: temperature
     accuracy_decimals: 1

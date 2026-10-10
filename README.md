@@ -104,9 +104,10 @@ Gebruik de [meegeleverde YAML](esphome/weheat-flint-ot.yaml) als basis. Belangri
 opentherm:
   in_pin: GPIO10
   out_pin: GPIO11
-  sync_mode: false
-  t_set: stooklijn_setpoint
-  ch_enable: ch_enable_switch
+  sync_mode: true
+  t_set: stooklijn_setpoint       # aanvoersetpoint van deze integratie
+  t_room: kamertemperatuur        # gemeten kamertemperatuur
+  t_room_set: kamer_setpoint      # gewenste kamertemperatuur (anders toont de WeHeat -1)
 
 sensor:
   - platform: homeassistant
@@ -114,7 +115,15 @@ sensor:
     entity_id: sensor.weheat_opentherm_aanvoersetpoint  # ← van deze integratie
     filters:
       - filter_out: nan  # behoud laatste waarde bij verbroken HA-koppeling
+  - platform: homeassistant
+    id: kamer_setpoint
+    entity_id: climate.weheat_opentherm_verwarmingsdoelwit
+    attribute: temperature
+    filters:
+      - filter_out: nan
 ```
+
+`ch_enable` wordt in de YAML door een switch geschakeld die de actieve modus van de integratie volgt.
 
 Vul je eigen `wifi`, `api`, `ota` secrets in en flash de ESP. Voeg het apparaat toe in HA via **Instellingen → Apparaten → ESPHome**.
 
