@@ -174,12 +174,14 @@ binary_sensor:
 # "actieve_modus" hieronder. Diagnostic-categorie: zichtbaar in HA voor debug,
 # maar handmatige toggle wordt direct overschreven zodra de integratie een
 # nieuwe modus stuurt.
+# RESTORE_DEFAULT_OFF: na een herstart van de ESP komt de laatste stand terug,
+# zodat de warmtepomp niet uitgaat tot HA opnieuw de modus heeft gestuurd.
 switch:
   - platform: opentherm
     ch_enable:
       name: "CV inschakelen"
       id: ch_enable_switch
-      restore_mode: ALWAYS_OFF
+      restore_mode: RESTORE_DEFAULT_OFF
       entity_category: diagnostic
 
 status_led:
