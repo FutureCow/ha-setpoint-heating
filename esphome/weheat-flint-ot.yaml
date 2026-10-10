@@ -193,6 +193,9 @@ text_sensor:
   # Leest de EFFECTIEVE modus uit de integratie ("heat" of "off").
   # "heat" bij climate=HEAT en buitentemp onder de stookgrens; anders "off".
   # on_value automation schakelt ch_enable_switch synchroon mee.
+  # Alleen "heat" en "off" schakelen: bij "unavailable"/"unknown" (bv. terwijl
+  # HA herstart en de integratie nog laadt) blijft de laatste stand staan,
+  # zodat de warmtepomp niet even uitgaat.
   - platform: homeassistant
     id: actieve_modus
     name: "Actieve modus (van integratie)"
@@ -204,5 +207,8 @@ text_sensor:
               lambda: 'return x == "heat";'
             then:
               - switch.turn_on: ch_enable_switch
-            else:
+        - if:
+            condition:
+              lambda: 'return x == "off";'
+            then:
               - switch.turn_off: ch_enable_switch

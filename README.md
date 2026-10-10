@@ -297,7 +297,7 @@ state opslaan (zoals Zonneplan) zonder extra configuratie.
 
 ### Wat als ESPHome geen verbinding heeft met HA?
 
-In de [meegeleverde YAML](esphome/weheat-flint-ot.yaml) zit `filter_out: nan` waardoor het laatste geldige setpoint behouden blijft. Het OpenTherm-protocol heeft zelf ook een fallback (boiler valt terug op interne logica bij signaal-verlies).
+In de [meegeleverde YAML](esphome/weheat-flint-ot.yaml) zit `filter_out: nan` waardoor het laatste geldige setpoint behouden blijft. De CV-schakelaar reageert alleen op de modus `heat` of `off`; bij `unavailable` (bv. terwijl HA herstart) blijft de laatste stand staan, zodat de warmtepomp niet even uitgaat. Het OpenTherm-protocol heeft zelf ook een fallback (boiler valt terug op interne logica bij signaal-verlies).
 
 ### Hoe weet ik of de adaptieve laag werkt?
 
