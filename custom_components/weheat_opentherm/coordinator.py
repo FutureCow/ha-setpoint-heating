@@ -64,7 +64,11 @@ from .const import (
     KEY_T_ZON,
     KEY_SUN_SOURCE,
 )
-from .energy_prices import async_get_price_data, calculate_price_correction
+from .energy_prices import (
+    async_get_price_data,
+    calculate_price_correction,
+    classify_price,
+)
 from .heating_curve import (
     calculate_heating_curve,
     calculate_room_compensation,
@@ -90,6 +94,9 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._entry = entry
         self.learning = LearningEngine(hass, entry.entry_id)
+        # Prijsindeling per prijsperiode: (prijs, indeling). Een ververste
+        # prijslijst halverwege een uur mag de indeling niet omgooien.
+        self._price_class: tuple[float, str] | None = None
         # Stookgrens-hysterese: onthoudt of verwarmen nu is toegestaan.
         # None = onbekend (na start of buiten HEAT) → bepaald op de stookgrens.
         self._heating_allowed: bool | None = None
@@ -205,10 +212,15 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         t_prijs = 0.0
         current_price = 0.0
         if price_sensor:
-            current_price, all_prices = await async_get_price_data(self.hass, price_sensor)
+            current_price, upcoming_prices = await async_get_price_data(self.hass, price_sensor)
+            # Eén indeling per prijsperiode: pas opnieuw bepalen als de prijs wisselt.
+            if self._price_class is None or self._price_class[0] != current_price:
+                self._price_class = (
+                    current_price,
+                    classify_price(current_price, upcoming_prices),
+                )
             t_prijs = calculate_price_correction(
-                current_price,
-                all_prices,
+                self._price_class[1],
                 room_temp,
                 target_temp,
                 max_price_corr,
