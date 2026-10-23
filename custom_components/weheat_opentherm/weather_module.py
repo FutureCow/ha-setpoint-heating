@@ -15,6 +15,9 @@ _LOGGER = logging.getLogger(__name__)
 # Windchill JAG/TI formule is alleen geldig bij T ≤ 10°C en v ≥ 4.8 km/h
 _WINDCHILL_TEMP_MAX = 10.0
 _WINDCHILL_SPEED_MIN = 4.8  # km/h
+# Boven 10°C loopt de correctie lineair af tot 0 bij deze temperatuur, zodat
+# er geen sprong zit op de geldigheidsgrens van de formule.
+_WINDCHILL_FADE_END = 13.0
 
 _MAX_SUN_CORRECTION = 4.0  # °C
 # Onder deze zonshoogte geen zoncorrectie. Nodig omdat "partlycloudy" ook
@@ -45,9 +48,17 @@ def _windchill_temperature(temp_c: float, wind_kmh: float) -> float:
 def _windchill_delta(temp_c: float, wind_kmh: float) -> float:
     """Verschil lucht- minus gevoelstemperatuur in buiten-°C (≥ 0).
 
-    Dit is géén aanvoer-correctie: heating_curve.calculate_windchill_correction
-    rekent het via de stooklijn om naar aanvoer-°C.
+    Tussen 10°C en _WINDCHILL_FADE_END wordt het verschil bij 10°C gebruikt,
+    lineair afgebouwd naar 0. Dit is géén aanvoer-correctie:
+    heating_curve.calculate_windchill_correction rekent het via de stooklijn
+    om naar aanvoer-°C.
     """
+    if temp_c >= _WINDCHILL_FADE_END:
+        return 0.0
+    if temp_c > _WINDCHILL_TEMP_MAX:
+        at_limit = _WINDCHILL_TEMP_MAX - _windchill_temperature(_WINDCHILL_TEMP_MAX, wind_kmh)
+        fade = (_WINDCHILL_FADE_END - temp_c) / (_WINDCHILL_FADE_END - _WINDCHILL_TEMP_MAX)
+        return max(0.0, at_limit * fade)
     feels_like = _windchill_temperature(temp_c, wind_kmh)
     return max(0.0, temp_c - feels_like)
 
