@@ -144,7 +144,7 @@ target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 | Module | Bestand | Doel |
 |---|---|---|
 | **Stooklijn** | `heating_curve.py` | 5 instelbare (buitentemp → aanvoertemp) punten met lineaire interpolatie + kamercompensatie (±5°C) |
-| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur, tussen 10 en 13°C lineair afgebouwd; de helft van het verschil telt als kouder buiten, via de stooklijnhelling omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster. Zon bij voorkeur uit **Forecast.Solar** (automatisch, zie hieronder), anders uit het weertype (alleen uren met de zon > 5° boven de horizon) |
+| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; alleen het verschil boven dat bij 10 km/h telt, want de stooklijn bevat gewone wind al; tussen 10 en 13°C lineair afgebouwd; de helft daarvan telt als kouder buiten, via de helling van de ingestelde stooklijn zonder geleerde offsets omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster. Zon bij voorkeur uit **Forecast.Solar** (automatisch, zie hieronder), anders uit het weertype (alleen uren met de zon > 5° boven de horizon) |
 | **Prijs** | `energy_prices.py` | μ/σ-analyse op de prijzen van de komende 24 uur; goedkoop → voorverwarmen, duur → bezuinigen (±max correctie). Eén indeling per prijsperiode: een ververste prijslijst halverwege het uur verandert de indeling niet |
 
 ### Zoncorrectie via Forecast.Solar (optioneel, automatisch)

@@ -18,6 +18,9 @@ _WINDCHILL_SPEED_MIN = 4.8  # km/h
 # Boven 10°C loopt de correctie lineair af tot 0 bij deze temperatuur, zodat
 # er geen sprong zit op de geldigheidsgrens van de formule.
 _WINDCHILL_FADE_END = 13.0
+# De stooklijn is ingesteld en geleerd bij gewone wind. Alleen het verschil
+# boven dat van deze windsnelheid telt mee, zodat een lichte bries niets doet.
+_WINDCHILL_BASE_WIND = 10.0  # km/h
 
 _MAX_SUN_CORRECTION = 4.0  # °C
 # Onder deze zonshoogte geen zoncorrectie. Nodig omdat "partlycloudy" ook
@@ -45,8 +48,15 @@ def _windchill_temperature(temp_c: float, wind_kmh: float) -> float:
     return 13.12 + 0.6215 * temp_c - 11.37 * v016 + 0.3965 * temp_c * v016
 
 
+def _excess_chill(temp_c: float, wind_kmh: float) -> float:
+    """Gevoelsverschil bij wind_kmh minus dat bij _WINDCHILL_BASE_WIND (≥ 0)."""
+    actual = temp_c - _windchill_temperature(temp_c, wind_kmh)
+    base = temp_c - _windchill_temperature(temp_c, _WINDCHILL_BASE_WIND)
+    return max(0.0, actual - base)
+
+
 def _windchill_delta(temp_c: float, wind_kmh: float) -> float:
-    """Verschil lucht- minus gevoelstemperatuur in buiten-°C (≥ 0).
+    """Extra gevoelsverschil door wind boven de basiswind, in buiten-°C (≥ 0).
 
     Tussen 10°C en _WINDCHILL_FADE_END wordt het verschil bij 10°C gebruikt,
     lineair afgebouwd naar 0. Dit is géén aanvoer-correctie:
@@ -56,11 +66,10 @@ def _windchill_delta(temp_c: float, wind_kmh: float) -> float:
     if temp_c >= _WINDCHILL_FADE_END:
         return 0.0
     if temp_c > _WINDCHILL_TEMP_MAX:
-        at_limit = _WINDCHILL_TEMP_MAX - _windchill_temperature(_WINDCHILL_TEMP_MAX, wind_kmh)
+        at_limit = _excess_chill(_WINDCHILL_TEMP_MAX, wind_kmh)
         fade = (_WINDCHILL_FADE_END - temp_c) / (_WINDCHILL_FADE_END - _WINDCHILL_TEMP_MAX)
-        return max(0.0, at_limit * fade)
-    feels_like = _windchill_temperature(temp_c, wind_kmh)
-    return max(0.0, temp_c - feels_like)
+        return at_limit * fade
+    return _excess_chill(temp_c, wind_kmh)
 
 
 def _sun_correction(condition: str, sun_by_condition: dict[str, float]) -> float:

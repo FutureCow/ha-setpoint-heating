@@ -98,7 +98,9 @@ def calculate_windchill_correction(
     Args:
         outdoor_temp: Huidige buitentemperatuur in °C.
         windchill_delta: Lucht- minus gevoelstemperatuur in °C (≥ 0).
-        curve_points: Stooklijn-punten (incl. geleerde offsets).
+        curve_points: Stooklijn-punten van de ontwerplijn, zonder geleerde
+            offsets: een offset op één punt maakt een stuk lijn steiler en
+            zou de windcorrectie daar opblazen.
 
     Returns:
         Correctie in °C aanvoer, binnen [0, +4].

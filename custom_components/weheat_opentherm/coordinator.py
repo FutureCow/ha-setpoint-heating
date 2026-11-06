@@ -204,8 +204,10 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 sun_sunny=sun_sunny,
                 sun_partlycloudy=sun_partlycloudy,
             )
+            # Helling van de ontwerplijn, zonder geleerde offsets: het leren
+            # verschuift het niveau, maar mag de windgevoeligheid niet vergroten.
             t_windchill = calculate_windchill_correction(
-                outdoor_temp, windchill_delta, adjusted_curve
+                outdoor_temp, windchill_delta, curve_points
             )
 
         # Module 3: Dynamische energieprijzen
