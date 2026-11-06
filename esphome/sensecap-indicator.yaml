@@ -1,0 +1,490 @@
+# ============================================================
+#  SenseCAP Indicator D1 — Sensoren + Thermostaat
+#  ESPHome 2026.x  |  mipi_rgb platform  |  LVGL v9
+#  v1.9 — 2026-11-07 (ontdooien wit i.p.v. blauw)
+# ============================================================
+
+substitutions:
+  device_name: sensecap-indicator
+  friendly_name: "SenseCAP Indicator"
+
+  # ── Sensorpagina ────────────────────────────────────────────
+  sensor1_entity:  "sensor.sensor_buiten_temperature"
+  sensor1_format:  "%.1f"
+
+  sensor3_entity:  "sensor.naar_aberg_new"
+  sensor3_unit:    "min"
+  sensor3_format:  "%.0f"
+
+  sensor4_entity:  "sensor.naar_huis_aberg_new"
+  sensor4_unit:    "min"
+  sensor4_format:  "%.0f"
+
+  # ── Thermostaatpagina ────────────────────────────────────────
+  thermostat_entity:  "climate.weheat_opentherm_verwarmingsdoelwit"
+  thermostat_min:     "10"
+  thermostat_max:     "25"
+
+# ============================================================
+#  Hardware basis
+# ============================================================
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    priority: 200
+    then:
+      - light.turn_on:
+          id: backlight
+          brightness: 100%
+
+esp32:
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESPTOOLPY_FLASHSIZE_8MB: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y
+      CONFIG_ESP32S3_DATA_CACHE_64KB: y
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  hardware_uart: UART0
+  level: INFO
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    encryption:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${friendly_name} Fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+# ============================================================
+#  Custom fonts (groter dan ingebouwde montserrat_48)
+# ============================================================
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto_96
+    size: 96
+    bpp: 4
+    glyphs: "0123456789.-°"
+
+# ============================================================
+#  MDI icons (via ESPHome image: mdi:, geen externe download)
+# ============================================================
+
+image:
+  - file: mdi:car
+    id: icon_car
+    resize: 32x32
+    type: RGB
+    transparency: alpha_channel
+  - file: mdi:home
+    id: icon_home
+    resize: 32x32
+    type: RGB
+    transparency: alpha_channel
+
+# ============================================================
+#  Hardware peripherals
+# ============================================================
+
+i2c:
+  - id: bus_a
+    sda: GPIO39
+    scl: GPIO40
+    scan: false
+
+spi:
+  - id: lcd_spi
+    clk_pin: GPIO41
+    mosi_pin: GPIO48
+    miso_pin: GPIO47
+
+pca9554:
+  - id: pca9554a_device
+    address: 0x20
+    pin_count: 16
+
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: ledc_gpio45
+    frequency: 100Hz
+
+light:
+  - platform: monochromatic
+    name: "Backlight"
+    id: backlight
+    output: ledc_gpio45
+    restore_mode: ALWAYS_ON
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO38
+      inverted: true
+    name: "User Button"
+    on_press:
+      - if:
+          condition:
+            light.is_on: backlight
+          then:
+            - light.turn_off: backlight
+          else:
+            - light.turn_on:
+                id: backlight
+                brightness: 100%
+
+display:
+  - platform: mipi_rgb
+    model: SEEED-INDICATOR-D1
+    id: sensecap_display
+
+touchscreen:
+  platform: ft5x06
+  id: sensecap_touchscreen
+  transform:
+    mirror_x: true
+    mirror_y: true
+  on_release:
+      - light.turn_on:
+          id: backlight
+          brightness: 100%
+
+# ============================================================
+#  Globale variabele — houdt setpoint bij voor +/− knoppen
+# ============================================================
+
+globals:
+  - id: thermo_target_value
+    type: float
+    restore_value: false
+    initial_value: "20.0"
+
+# ============================================================
+#  Home Assistant sensoren
+# ============================================================
+
+sensor:
+  # ── Pagina 1 ─────────────────────────────────────────────────
+  - platform: homeassistant
+    id: ha_sensor1
+    entity_id: ${sensor1_entity}
+    on_value:
+      - lvgl.label.update:
+          id: lbl_thermo_buiten
+          text:
+            format: "${sensor1_format}°"
+            args: [x]
+
+  - platform: homeassistant
+    id: ha_reistijd_werk
+    entity_id: ${sensor3_entity}
+    on_value:
+      - lvgl.label.update:
+          id: lbl_thermo_werk
+          text:
+            format: "${sensor3_format} ${sensor3_unit}"
+            args: [x]
+
+  - platform: homeassistant
+    id: ha_reistijd_huis
+    entity_id: ${sensor4_entity}
+    on_value:
+      - lvgl.label.update:
+          id: lbl_thermo_huis
+          text:
+            format: "${sensor4_format} ${sensor4_unit}"
+            args: [x]
+
+  # ── Pagina 2 ─────────────────────────────────────────────────
+  - platform: homeassistant
+    id: ha_boiler_setpoint
+    entity_id: sensor.weheat_flint_thermostat_aanvoersetpoint_naar_boiler
+    on_value:
+      - lvgl.label.update:
+          id: lbl_boiler
+          text:
+            format: "%.1f°"
+            args: [x]
+
+  - platform: homeassistant
+    id: ha_thermo_current
+    entity_id: ${thermostat_entity}
+    attribute: current_temperature
+    on_value:
+      - lvgl.label.update:
+          id: lbl_thermo_current
+          text:
+            format: "%.1f°"
+            args: [x]
+      - lambda: |-
+          // Positie op de boog (135° tot 45° via bovenkant = 270° range)
+          float ratio = (x - 5.0f) / 25.0f;  // 5–30°C → 0.0–1.0
+          if (ratio < 0.0f) ratio = 0.0f;
+          if (ratio > 1.0f) ratio = 1.0f;
+          float angle_deg = 135.0f + ratio * 270.0f;
+          float angle_rad = angle_deg * 3.14159265f / 180.0f;
+          // Arc center (65+175, 35+175) = (240, 210), radius = 175
+          int cx = 240, cy = 210, r = 175;
+          int dx = cx + (int)(r * cosf(angle_rad));
+          int dy = cy + (int)(r * sinf(angle_rad));
+          // Stip is 14×14, dus center op dx,dy
+          lv_obj_set_pos(id(current_temp_dot), dx - 7, dy - 7);
+
+  - platform: homeassistant
+    id: ha_thermo_target
+    entity_id: ${thermostat_entity}
+    attribute: temperature
+    on_value:
+      - lambda: |-
+          id(thermo_target_value) = x;
+      - lvgl.arc.update:
+          id: thermo_arc
+          value: !lambda return (int)(x * 10.0f);
+      - lvgl.label.update:
+          id: lbl_setpoint_inside
+          text:
+            format: "%.1f°"
+            args: [x]
+
+text_sensor:
+  - platform: homeassistant
+    id: ha_heatpump_status
+    entity_id: sensor.flint_p40_heat_pump
+    on_value:
+      - lambda: |-
+          uint32_t color;
+          std::string status(x);
+          if (status == "heating") {
+            color = 0xff7043;
+          } else if (status == "defrosting") {
+            // Ontdooien is geen koelen: wit, zodat het niet op koelen lijkt
+            color = 0xffffff;
+          } else if (status == "cooling") {
+            color = 0x4fc3f7;
+          } else {
+            color = 0x8b949e;
+          }
+          lv_obj_set_style_arc_color(id(thermo_arc), lv_color_hex(color), LV_PART_INDICATOR);
+
+# ============================================================
+#  LVGL
+#
+#  Pagina 1: 3 sensorkaarten + navigatieknop
+#  Pagina 2: Thermostaat + navigatieknop
+# ============================================================
+
+lvgl:
+  displays:
+    - sensecap_display
+  touchscreens:
+    - sensecap_touchscreen
+
+  theme:
+    dark_mode: true
+
+  pages:
+
+    # ── Enige pagina: Thermostaat + sensoren ──────────────────
+    - id: thermostat_page
+      bg_color: 0x0d1117
+      bg_opa: COVER
+      widgets:
+
+        # Sensorrij bovenin
+        - label:
+            id: lbl_boiler
+            x: 10
+            y: 8
+            width: 110
+            text: "--°"
+            text_font: montserrat_28
+            text_color: 0xff7043
+            text_align: LEFT
+
+        - label:
+            id: lbl_thermo_buiten
+            x: 340
+            y: 2
+            width: 125
+            text: "--°"
+            text_font: montserrat_42
+            text_color: 0x4fc3f7
+            text_align: RIGHT
+
+        # Arc (350×350, bereik 5.0–30.0°C ×10) — setpoint, onder
+        - arc:
+            id: thermo_arc
+            x: 65
+            y: 35
+            width: 350
+            height: 350
+            min_value: 50
+            max_value: 300
+            value: 200
+            arc_color: 0x30363d
+            arc_width: 22
+            start_angle: 135
+            end_angle: 45
+            bg_opa: TRANSP
+            indicator:
+              arc_color: 0xff7043
+              arc_width: 22
+            knob:
+              bg_opa: TRANSP
+              border_width: 0
+
+        # Witte stip op de boog voor huidige temperatuur
+        - obj:
+            id: current_temp_dot
+            x: 234
+            y: 34
+            width: 14
+            height: 14
+            radius: 7
+            bg_color: 0xffffff
+            bg_opa: COVER
+            border_width: 2
+            border_color: 0x333333
+
+        # Huidige temperatuur gecentreerd in de arc
+        - label:
+            id: lbl_thermo_current
+            x: 65
+            y: 138
+            width: 350
+            text: "--°"
+            text_font: roboto_96
+            text_color: 0xffffff
+            text_align: CENTER
+
+        - label:
+            x: 65
+            y: 238
+            width: 350
+            text: "huidig"
+            text_font: montserrat_14
+            text_color: 0x8b949e
+            text_align: CENTER
+
+        - label:
+            id: lbl_setpoint_inside
+            x: 65
+            y: 272
+            width: 350
+            text: "--°"
+            text_font: montserrat_42
+            text_color: 0xc0c0c0
+            text_align: CENTER
+
+        # Setpoint rij
+        - button:
+            x: 155
+            y: 360
+            width: 70
+            height: 52
+            bg_color: 0x21262d
+            radius: 10
+            border_width: 1
+            border_color: 0x30363d
+            on_click:
+              - lambda: |-
+                  float v = id(thermo_target_value) - 0.5;
+                  if (v < ${thermostat_min}.0f) v = ${thermostat_min}.0f;
+                  id(thermo_target_value) = v;
+              - homeassistant.action:
+                  action: climate.set_temperature
+                  data:
+                    entity_id: ${thermostat_entity}
+                    temperature: !lambda return id(thermo_target_value);
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "-"
+                  text_font: montserrat_32
+                  text_color: 0xff7043
+
+        - button:
+            x: 255
+            y: 360
+            width: 70
+            height: 52
+            bg_color: 0x21262d
+            radius: 10
+            border_width: 1
+            border_color: 0x30363d
+            on_click:
+              - lambda: |-
+                  float v = id(thermo_target_value) + 0.5;
+                  if (v > ${thermostat_max}.0f) v = ${thermostat_max}.0f;
+                  id(thermo_target_value) = v;
+              - homeassistant.action:
+                  action: climate.set_temperature
+                  data:
+                    entity_id: ${thermostat_entity}
+                    temperature: !lambda return id(thermo_target_value);
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "+"
+                  text_font: montserrat_32
+                  text_color: 0xff7043
+
+        # Reistijden
+        - image:
+            src: icon_car
+            x: 83
+            y: 425
+            width: 32
+            height: 32
+            recolor: 0x66bb6a
+            recolor_opa: COVER
+        - label:
+            id: lbl_thermo_werk
+            x: 120
+            y: 427
+            width: 100
+            text: "--"
+            text_font: montserrat_28
+            text_color: 0x66bb6a
+            text_align: LEFT
+
+        - image:
+            src: icon_home
+            x: 260
+            y: 425
+            width: 32
+            height: 32
+            recolor: 0x4fc3f7
+            recolor_opa: COVER
+        - label:
+            id: lbl_thermo_huis
+            x: 297
+            y: 427
+            width: 100
+            text: "--"
+            text_font: montserrat_28
+            text_color: 0x4fc3f7
+            text_align: LEFT
