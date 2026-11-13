@@ -231,8 +231,9 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
         # Eindberekening
-        t_definitief = t_stooklijn + t_kamer_comp + t_windchill - t_zon + t_prijs
-        t_definitief = round(max(t_min, min(t_max, t_definitief)), 1)
+        raw_setpoint = t_stooklijn + t_kamer_comp + t_windchill - t_zon + t_prijs
+        clamped = 1 if raw_setpoint > t_max else (-1 if raw_setpoint < t_min else 0)
+        t_definitief = round(max(t_min, min(t_max, raw_setpoint)), 1)
 
         if setpoint_entity:
             await self._async_write_setpoint(setpoint_entity, t_definitief)
@@ -246,6 +247,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             learning_rate=learning_rate,
             heatpump_status=heatpump_status,
             flow_setpoint=t_definitief,
+            clamped=clamped,
         )
 
         return {

@@ -91,13 +91,17 @@ def _sun_is_up(hass: HomeAssistant, forecast_time: str | None) -> bool:
     return sun_elevation >= _SUN_MIN_ELEVATION
 
 
+_KMH_PER_UNIT = {"m/s": 3.6, "mph": 1.60934, "kn": 1.852, "ft/s": 1.09728}
+
+
 def _to_kmh(wind_speed: float, unit: str) -> float:
-    """Converteer windsnelheid naar km/h."""
-    if unit == "m/s":
-        return wind_speed * 3.6
-    if unit == "mph":
-        return wind_speed * 1.60934
-    return wind_speed  # Ga uit van km/h
+    """Converteer windsnelheid naar km/h (onbekende eenheid: km/h)."""
+    return wind_speed * _KMH_PER_UNIT.get(unit, 1.0)
+
+
+def _to_celsius(temp: float, unit: str) -> float:
+    """Converteer temperatuur naar °C."""
+    return (temp - 32.0) * 5.0 / 9.0 if unit == "°F" else temp
 
 
 async def async_get_forecast_corrections(
@@ -144,7 +148,9 @@ async def async_get_forecast_corrections(
 
     # Bepaal windsnelheidseenheid van de weer-entiteit
     state = hass.states.get(weather_entity)
-    wind_unit = (state.attributes.get("wind_speed_unit", "km/h") if state else "km/h") or "km/h"
+    attrs = state.attributes if state else {}
+    wind_unit = attrs.get("wind_speed_unit") or "km/h"
+    temp_unit = attrs.get("temperature_unit") or "°C"
 
     pv = await async_get_pv_forecast(hass)
 
@@ -153,12 +159,13 @@ async def async_get_forecast_corrections(
     sources: set[str] = set()
 
     for entry in forecasts[:hours]:
-        temp = float(entry.get("temperature") or 0.0)
-        wind_raw = float(entry.get("wind_speed") or 0.0)
-        wind = _to_kmh(wind_raw, wind_unit)
         condition = str(entry.get("condition") or "")
-
-        windchill_values.append(_windchill_delta(temp, wind))
+        # Zonder temperatuur geen windchill: 0 °C invullen zou bij wind een
+        # correctie geven die niets met het echte weer te maken heeft.
+        if (raw_temp := entry.get("temperature")) is not None:
+            temp = _to_celsius(float(raw_temp), temp_unit)
+            wind = _to_kmh(float(entry.get("wind_speed") or 0.0), wind_unit)
+            windchill_values.append(_windchill_delta(temp, wind))
 
         forecast_time = entry.get("datetime")
         hour_start = dt_util.parse_datetime(forecast_time) if forecast_time else None
@@ -175,10 +182,10 @@ async def async_get_forecast_corrections(
             )
         sun_values.append(sun)
 
-    if not windchill_values:
+    if not sun_values:
         return 0.0, 0.0, None
 
-    wc = round(max(windchill_values), 2)
+    wc = round(max(windchill_values, default=0.0), 2)
     sc = round(
         min(_MAX_SUN_CORRECTION, sum(sun_values) / len(sun_values)),
         2,

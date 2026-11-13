@@ -26,6 +26,7 @@ PRICE_EXPENSIVE = "duur"
 # Bekende attribuutsleutels voor uursrijzen in diverse HA-integraties
 _PRICE_ATTR_KEYS = (
     "forecast",
+    "prices",
     "prices_today",
     "prices_tomorrow",
     "hourly_prices",
@@ -33,7 +34,7 @@ _PRICE_ATTR_KEYS = (
     "raw_tomorrow",
 )
 _ITEM_VALUE_KEYS = ("value", "price", "total", "electricity_price")
-_ITEM_TIME_KEYS = ("datetime", "start", "start_time", "start_date", "from")
+_ITEM_TIME_KEYS = ("datetime", "start", "start_time", "start_date", "from", "time")
 
 
 def _item_time(item: dict[str, Any]) -> datetime | None:
@@ -51,14 +52,22 @@ def _extract_prices(attributes: dict[str, Any]) -> list[tuple[datetime | None, f
     """Lees een lijst (begintijd, prijs) uit de sensor-attributen.
 
     Ondersteunt zowel lijsten van floats (zonder tijd) als lijsten van dicts
-    met een prijssleutel (bijv. Tibber, EPEX Spot, Nordpool, Zonneplan).
+    met een prijssleutel (bijv. Nordpool, ENTSO-e, Zonneplan).
     """
     for key in _PRICE_ATTR_KEYS:
         val = attributes.get(key)
         if not isinstance(val, list):
             continue
+        items = list(val)
+        # Vandaag en morgen in losse attributen (bv. Nordpool raw_today/raw_tomorrow):
+        # samenvoegen, anders ziet de 24-uursvergelijking 's avonds alleen de
+        # laatste uren van vandaag.
+        if key.endswith("_today"):
+            tomorrow = attributes.get(key.removesuffix("_today") + "_tomorrow")
+            if isinstance(tomorrow, list):
+                items += tomorrow
         prices: list[tuple[datetime | None, float]] = []
-        for item in val:
+        for item in items:
             if isinstance(item, (int, float)):
                 prices.append((None, float(item)))
             elif isinstance(item, dict):

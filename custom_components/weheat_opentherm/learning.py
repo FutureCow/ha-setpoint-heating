@@ -37,7 +37,8 @@ class LearningEngine:
       2. Eén keer per uur: per curve-punt het dichtstbijzijnde bucket bekijken,
          en bij persistente afwijking >0.3°C de offset met learning_rate aanpassen.
       3. Offsets begrensd op ±5°C t.o.v. originele curve.
-      4. Curve-verandering door gebruiker → offsets + buckets gereset.
+      4. Curve-verandering door gebruiker (buiten- of aanvoerwaarde) →
+         offsets + buckets gereset.
     """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
@@ -108,6 +109,7 @@ class LearningEngine:
         learning_rate: float,
         heatpump_status: str | None = None,
         flow_setpoint: float | None = None,
+        clamped: int = 0,
     ) -> None:
         """Voer één observatie-cyclus uit en mogelijk een leerstap.
 
@@ -115,12 +117,19 @@ class LearningEngine:
         die niet gekoppeld is.
         flow_setpoint: het berekende aanvoersetpoint; ligt dat niet boven de
         kamertemperatuur, dan kan de verwarming de kamer niet opwarmen.
+        clamped: +1 als het setpoint op t_max is begrensd, -1 bij t_min, anders 0.
+        Een afwijking in de richting van de grens kan de stooklijn dan niet
+        oplossen; meetellen zou de offsets alleen laten oplopen.
         """
         await self.async_load()
         now = dt_util.utcnow()
 
         # Detecteer curve-wijziging door gebruiker → reset
         sig = self._curve_signature(curve_points)
+        if self._data["curve_signature"] == self._legacy_signature(curve_points):
+            # Opslag van vóór v2.4.0 (alleen buitentemperaturen): zelfde lijn,
+            # dus overnemen zonder de geleerde offsets te wissen.
+            self._data["curve_signature"] = sig
         if (
             self._data["curve_signature"] is not None
             and self._data["curve_signature"] != sig
@@ -152,7 +161,13 @@ class LearningEngine:
         overheated_without_heating = error < 0 and (
             pump_not_heating or setpoint_below_room
         )
-        if outdoor_stable and target_stable and not overheated_without_heating:
+        against_limit = (error > 0 and clamped > 0) or (error < 0 and clamped < 0)
+        if (
+            outdoor_stable
+            and target_stable
+            and not overheated_without_heating
+            and not against_limit
+        ):
             self._observe(outdoor_temp, error, now)
 
         # Eens per uur: leerstap
@@ -169,7 +184,13 @@ class LearningEngine:
 
     @staticmethod
     def _curve_signature(curve_points: list[list[float]]) -> str:
-        """Stabiele hash van de buitentemp-punten in de curve."""
+        """Stabiele hash van alle punten (buiten- én aanvoertemperatuur)."""
+        pts = sorted((p[0], p[1]) for p in curve_points[:5])
+        return ";".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+
+    @staticmethod
+    def _legacy_signature(curve_points: list[list[float]]) -> str:
+        """Signatuur tot v2.3.4: alleen de buitentemperaturen."""
         sorted_x = sorted(p[0] for p in curve_points[:5])
         return ",".join(f"{x:.1f}" for x in sorted_x)
 
@@ -276,10 +297,11 @@ class LearningEngine:
 
         self._data["offsets"] = offsets
 
-        # Decay buckets: recente data weegt zwaarder
+        # Decay buckets: recente data weegt zwaarder. Som en aantal met
+        # dezelfde factor, anders verschuift het gemiddelde bij het afronden.
         for b in buckets.values():
             b["sum"] *= 0.5
-            b["count"] = max(1, int(b["count"] * 0.5))
+            b["count"] *= 0.5
 
         if changed:
             _LOGGER.info(
