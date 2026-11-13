@@ -22,6 +22,10 @@ substitutions:
 
   # ── Thermostaatpagina ────────────────────────────────────────
   thermostat_entity:  "climate.weheat_opentherm_verwarmingsdoelwit"
+  # Wat de bridge naar de warmtepomp stuurt (sensor van de ESP zelf) en de
+  # status-sensor uit de WeHeat-integratie.
+  setpoint_sent_entity: "sensor.weheat_flint_thermostat_aanvoersetpoint_naar_boiler"
+  pump_status_entity:   "sensor.flint_p40_heat_pump"
   thermostat_min:     "10"
   thermostat_max:     "25"
 
@@ -221,7 +225,7 @@ sensor:
   # ── Pagina 2 ─────────────────────────────────────────────────
   - platform: homeassistant
     id: ha_boiler_setpoint
-    entity_id: sensor.weheat_flint_thermostat_aanvoersetpoint_naar_boiler
+    entity_id: ${setpoint_sent_entity}
     on_value:
       - lvgl.label.update:
           id: lbl_boiler
@@ -272,7 +276,7 @@ sensor:
 text_sensor:
   - platform: homeassistant
     id: ha_heatpump_status
-    entity_id: sensor.flint_p40_heat_pump
+    entity_id: ${pump_status_entity}
     on_value:
       - lambda: |-
           uint32_t color;

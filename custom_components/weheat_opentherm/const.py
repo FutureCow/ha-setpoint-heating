@@ -1,6 +1,8 @@
 """Constants for WeHeat OpenTherm integration."""
 from __future__ import annotations
 
+from homeassistant.helpers.device_registry import DeviceInfo
+
 DOMAIN = "weheat_opentherm"
 PLATFORMS = ["button", "climate", "number", "sensor"]
 
@@ -10,7 +12,7 @@ CONF_OUTDOOR_TEMP_SENSOR = "outdoor_temp_sensor"
 CONF_WEATHER_ENTITY = "weather_entity"
 CONF_PRICE_SENSOR = "price_sensor"
 CONF_SETPOINT_ENTITY = "setpoint_entity"
-CONF_HEATPUMP_STATUS_SENSOR = "heatpump_status_sensor"  # bv. sensor.flint_p40_heat_pump
+CONF_HEATPUMP_STATUS_SENSOR = "heatpump_status_sensor"  # bv. sensor.<warmtepomp>_heat_pump
 
 # Options keys (editable via options flow or number entities)
 CONF_TARGET_TEMP = "target_temp"
@@ -78,3 +80,13 @@ KEY_OFFSETS = "curve_offsets"  # list[float] van 5 leer-offsets
 KEY_HVAC_MODE = "hvac_mode"             # door gebruiker gekozen
 KEY_EFFECTIVE_MODE = "effective_mode"   # daadwerkelijk actief (heat/off na stookgrens)
 KEY_HEATPUMP_STATUS = "heatpump_status" # rauwe state van de WeHeat status-sensor
+
+
+def device_info(entry_id: str) -> DeviceInfo:
+    """Apparaat waar alle entiteiten van deze integratie onder vallen."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry_id)},
+        name="WeHeat OpenTherm",
+        manufacturer="WeHeat",
+        model="OpenTherm-setpoint",
+    )

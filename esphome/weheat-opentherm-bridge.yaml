@@ -1,6 +1,16 @@
 substitutions:
-  device_name: weheat-flint-ot
-  friendly_name: "WeHeat Flint Thermostat"
+  device_name: weheat-ot
+  friendly_name: "WeHeat OpenTherm"
+
+  # Entiteiten in HA. De namen van de integratie volgen de taal die HA had
+  # toen je de integratie toevoegde. Controleer ze onder Instellingen →
+  # Entiteiten. In het Engels heten ze sensor.weheat_opentherm_supply_setpoint,
+  # sensor.weheat_opentherm_active_mode en climate.weheat_opentherm_heating_target.
+  setpoint_entity: sensor.weheat_opentherm_aanvoersetpoint
+  mode_entity: sensor.weheat_opentherm_actieve_modus
+  thermostat_entity: climate.weheat_opentherm_verwarmingsdoelwit
+  # Je eigen kamertemperatuursensor (dezelfde als in de integratie).
+  room_temp_entity: sensor.woonkamer_temperatuur
 
 esphome:
   name: ${device_name}
@@ -45,7 +55,7 @@ web_server:
 # ─── OpenTherm Hub ───────────────────────────────────────────────────────────
 #
 # t_set leest het berekende aanvoersetpoint rechtstreeks uit de HA-integratie.
-# Entity: sensor.weheat_opentherm_aanvoersetpoint
+# Entity: ${setpoint_entity} (zie substitutions)
 # (aangemaakt door de weheat_opentherm custom integratie)
 #
 opentherm:
@@ -72,7 +82,7 @@ sensor:
   - platform: homeassistant
     id: stooklijn_setpoint
     name: "Aanvoersetpoint (ontvangen van HA)"
-    entity_id: sensor.weheat_opentherm_aanvoersetpoint
+    entity_id: ${setpoint_entity}
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: measurement
@@ -96,7 +106,7 @@ sensor:
   # Kamertemperatuur — doorgestuurd naar warmtepomp via OpenTherm t_room (ID 24)
   - platform: homeassistant
     id: kamertemperatuur
-    entity_id: sensor.bth_3ab2_temperatuur
+    entity_id: ${room_temp_entity}
     unit_of_measurement: "°C"
     device_class: temperature
     accuracy_decimals: 1
@@ -108,7 +118,7 @@ sensor:
   # het aanvoersetpoint van de integratie.
   - platform: homeassistant
     id: kamer_setpoint
-    entity_id: climate.weheat_opentherm_verwarmingsdoelwit
+    entity_id: ${thermostat_entity}
     attribute: temperature
     unit_of_measurement: "°C"
     device_class: temperature
@@ -201,7 +211,7 @@ text_sensor:
   - platform: homeassistant
     id: actieve_modus
     name: "Actieve modus (van integratie)"
-    entity_id: sensor.weheat_opentherm_actieve_modus
+    entity_id: ${mode_entity}
     on_value:
       then:
         - if:

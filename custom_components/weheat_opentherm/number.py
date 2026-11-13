@@ -11,7 +11,6 @@ from homeassistant.components.number import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -33,6 +32,7 @@ from .const import (
     DEFAULT_T_MAX,
     DEFAULT_T_MIN,
     DOMAIN,
+    device_info,
 )
 from .coordinator import WeheatCoordinator
 
@@ -177,12 +177,7 @@ class WeheatNumber(CoordinatorEntity[WeheatCoordinator], NumberEntity):
         self.entity_description = description
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="WeHeat OpenTherm",
-            manufacturer="WeHeat",
-            model="Flint",
-        )
+        self._attr_device_info = device_info(entry.entry_id)
 
     @property
     def native_value(self) -> float:

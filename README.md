@@ -3,7 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/FutureCow/ha-setpoint-heating)](https://github.com/FutureCow/ha-setpoint-heating/releases)
 
-Home Assistant custom integratie die elke minuut het optimale **OpenTherm aanvoertemperatuur-setpoint** berekent voor een **WeHeat Flint warmtepomp**. Het setpoint wordt via ESPHome op een ESP32-C6 OpenTherm gateway naar de warmtepomp gestuurd.
+Home Assistant custom integratie die elke minuut het optimale **OpenTherm aanvoertemperatuur-setpoint** berekent voor een **WeHeat-warmtepomp** met OpenTherm-aansluiting. Het setpoint wordt via ESPHome op een ESP32-C6 OpenTherm gateway naar de warmtepomp gestuurd.
 
 De berekening combineert klassieke stooklijn-regeling met kamercompensatie, weersvoorspelling (windchill + zon) en dynamische energieprijzen. Een ingebouwd lerend systeem fine-tunet de stooklijn over weken op basis van werkelijke kamer-afwijking.
 
@@ -46,7 +46,7 @@ De berekening combineert klassieke stooklijn-regeling met kamercompensatie, weer
               └─────────┬──────────┘
                         ▼
               ┌────────────────────┐
-              │  WeHeat Flint      │
+              │  WeHeat            │
               │  warmtepomp        │
               └────────────────────┘
 ```
@@ -59,11 +59,11 @@ T = clamp(T, T_min, T_max)
 
 ## Vereisten
 
-- Home Assistant **2024.1** of nieuwer
-- WeHeat Flint warmtepomp met OpenTherm interface
+- Home Assistant **2024.11** of nieuwer
+- WeHeat-warmtepomp met OpenTherm-aansluiting. Gebouwd en getest met een Flint P40; andere WeHeat-modellen met OpenTherm zouden op dezelfde manier moeten werken, maar zijn niet getest
 - ESP32-C6 (of een ander OpenTherm-compatibel ESP) met DIYLESS / Ihormelnyk OpenTherm shield
 - Een weer-entiteit in HA (Buienradar, OpenWeatherMap, KNMI, etc.) — optioneel maar aanbevolen
-- Een dynamische energieprijssensor (EPEX Spot, Tibber, Nordpool) — optioneel
+- Een dynamische energieprijssensor met de komende prijzen in een attribuut (zie [prijssensoren](#welke-prijssensoren-werken)) — optioneel
 - HACS geïnstalleerd
 
 ## Installatie
@@ -91,14 +91,19 @@ T = clamp(T, T_min, T_max)
    | Kamertemperatuursensor | ✅ | `sensor.woonkamer_temperatuur` |
    | Buitentemperatuursensor | ✅ | `sensor.knmi_temperatuur` of template-sensor (zie [tips](#beter-buitentemperatuur-gebruiken)) |
    | Weer-entiteit | optioneel | `weather.buienradar` |
-   | Energieprijssensor | optioneel | `sensor.epex_spot_data_net` |
+   | Energieprijssensor | optioneel | `sensor.zonneplan_current_electricity_tariff` |
    | Setpoint-bridge | optioneel | leeg laten — ESPHome leest direct van integratiesensor |
+   | Warmtepomp status-sensor | optioneel | `sensor.<warmtepomp>_heat_pump` uit de WeHeat-integratie |
 
-4. **Doorloop de 3 options-stappen** voor temperatuurinstellingen, stooklijn en geavanceerde correcties (kun je later altijd aanpassen via CONFIGUREREN op de integratie).
+4. **Doorloop de 4 options-stappen** voor temperatuurinstellingen, stooklijn en geavanceerde correcties (kun je later altijd aanpassen via CONFIGUREREN op de integratie).
 
 ### Stap 3 — ESPHome flashen
 
-Gebruik de [meegeleverde YAML](esphome/weheat-flint-ot.yaml) als basis. Belangrijkste regels:
+Gebruik de [meegeleverde YAML](esphome/weheat-opentherm-bridge.yaml) als basis. Vul bovenin bij `substitutions` je eigen entiteiten in.
+
+> **Let op de entity-ID's.** HA maakt ze aan in de taal die HA had toen je de integratie toevoegde. In het Nederlands is dat `sensor.weheat_opentherm_aanvoersetpoint`, `sensor.weheat_opentherm_actieve_modus` en `climate.weheat_opentherm_verwarmingsdoelwit`; in het Engels `sensor.weheat_opentherm_supply_setpoint`, `sensor.weheat_opentherm_active_mode` en `climate.weheat_opentherm_heating_target`. Controleer ze onder **Instellingen → Entiteiten**.
+
+Belangrijkste regels:
 
 ```yaml
 opentherm:
@@ -179,10 +184,11 @@ Alles wat je kunt bijregelen, op één rij:
 - Gewenste kamertemperatuur
 - HVAC-modus: **Verwarmen** (stooklijn-berekening) / **Uit** (warmtepomp stopt). Koelen wordt door de WeHeat intern geregeld (eigen koelstooklijn, geen OpenTherm-aansturing).
 
-### Via options flow (3 stappen)
+### Via options flow (4 stappen)
 - **Stap 1 — Temperatuurinstellingen:** doel, min/max, factoren
 - **Stap 2 — Stooklijn:** 5 (buitentemp → aanvoertemp) koppels
 - **Stap 3 — Geavanceerde correcties:** voorverwarm-bonus, besparing, zonnig/deels bewolkt
+- **Stap 4 — Extra sensoren:** status-sensor van de warmtepomp
 
 ### Via reset-knop
 - Wis alle geleerde stooklijn-offsets
@@ -195,7 +201,8 @@ De integratie leert over weken automatisch je 5 stooklijn-punten bij te slijpen 
 - Elke 60s: bij stabiele omstandigheden bewaar `(target − kamer)` per buitentemp-bucket
 - Elk uur: per curve-punt bij persistente afwijking >0.3°C → offset met `learning_rate` aanpassen
 - Offsets begrensd op ±5°C, oude data vervalt na 7 dagen
-- Auto-reset bij handmatige curve-wijziging
+- Auto-reset bij handmatige curve-wijziging (buiten- of aanvoerwaarde)
+- Niet leren als het setpoint al op de minimale of maximale aanvoertemperatuur staat
 
 **Stabiliteitseisen** (voorkomt leren van verkeerde signalen):
 - Geen doeltemperatuur-wijziging in laatste 60 min
@@ -250,10 +257,10 @@ Voorbeeld: kamer 21°C, buiten 20°C, climate=HEAT, stookgrens=17 → 20 ≥ 17 
 
 ## Koelen
 
-**Niet aangestuurd** door deze integratie — de WeHeat Flint regelt koeling intern via een eigen koelstooklijn (geen OpenTherm-pad). Zet de koelmodus aan/uit via de WeHeat-app of de fysieke knop. De climate-entiteit heeft daarom alleen **Verwarmen** en **Uit**.
+**Niet aangestuurd** door deze integratie — de WeHeat regelt koeling intern via een eigen koelstooklijn (geen OpenTherm-pad). Zet de koelmodus aan/uit via de WeHeat-app of de fysieke knop. De climate-entiteit heeft daarom alleen **Verwarmen** en **Uit**.
 
 ### Maar wel zichtbaar maken
-Sinds v2.1 kun je de **`sensor.flint_p40_heat_pump`** (uit de officiële WeHeat integratie) koppelen via *Configureren → Extra sensoren → Warmtepomp status-sensor*. De climate-tegel toont dan via `hvac_action`:
+Sinds v2.1 kun je de status-sensor van de warmtepomp (**`sensor.<warmtepomp>_heat_pump`** uit de officiële WeHeat-integratie) koppelen via *Configureren → Extra sensoren → Warmtepomp status-sensor*. De climate-tegel toont dan via `hvac_action`:
 
 | Pomp-status | Climate-tegel laat zien |
 |---|---|
@@ -276,28 +283,25 @@ De WeHeat's eigen `t_outside` (via OpenTherm) fluctueert wanneer de compressor d
     - name: "Buitentemperatuur stabiel"
       unit_of_measurement: "°C"
       device_class: temperature
-      state: "{{ state_attr('weather.buienradar', 'temperature') | float(0) }}"
+      state: "{{ state_attr('weather.buienradar', 'temperature') }}"
+      availability: "{{ state_attr('weather.buienradar', 'temperature') is number }}"
 ```
 
-Gebruik deze als `outdoor_temp_sensor` in de integratie-setup.
+Gebruik deze als `outdoor_temp_sensor` in de integratie-setup. Gebruik geen `float(0)`: valt het weer weg, dan rekent de integratie anders met 0 °C buiten en stookt ze veel te warm. Met `availability` wordt de sensor `unavailable` en houdt de ESP het laatste setpoint vast.
 
 ### Welke prijssensoren werken?
 
-De integratie leest automatisch een lijst uursrijzen uit de sensor-attributen. Ondersteund:
-- **EPEX Spot** (via `sensor.epex_spot_data_net.prices_today`)
-- **Tibber** (via `forecast` → `total`)
-- **Nordpool** (via `raw_today` / `raw_tomorrow`)
-- **Zonneplan** (via `forecast` → `electricity_price`, met automatische schaalcorrectie omdat Zonneplan integers × 1e7 opslaat)
-- Elke sensor met een attribuut `forecast`, `prices_today`, `prices_tomorrow`, `hourly_prices`, of `raw_today` met lijst van floats of `{value/price/total/electricity_price}`-dicts
+De integratie leest de komende prijzen uit een attribuut van de prijssensor. Dat attribuut moet een lijst zijn, met getallen of met items als `{start/time/from: tijd, value/price/total/electricity_price: prijs}`. Gezocht wordt in `forecast`, `prices`, `prices_today` (+ `prices_tomorrow`), `hourly_prices` en `raw_today` (+ `raw_tomorrow`).
 
-Sinds v1.3.1 detecteert de integratie automatisch een schaalverschil (>10×) tussen
-de huidige state en de forecast-waarden en normaliseert de forecast naar de
-state-eenheid. Hiermee werken sensoren die hun forecast in een andere unit dan de
-state opslaan (zoals Zonneplan) zonder extra configuratie.
+- **Zonneplan**: getest (`forecast` → `electricity_price`). Zonneplan slaat de lijst op als integer × 1e7; de integratie herkent dat schaalverschil zelf.
+- **Nordpool** (HACS, `raw_today`/`raw_tomorrow`) en **ENTSO-e** (`prices`) volgen dit formaat, maar zijn niet getest.
+- Heeft je sensor geen prijslijst in een attribuut, dan blijft de prijscorrectie 0. De rest werkt gewoon.
+
+Controleer het in het attribuut `prijs_correctie` van de aanvoersetpoint-sensor: bij een werkende koppeling wisselt het over de dag tussen −2, 0 en +2.
 
 ### Wat als ESPHome geen verbinding heeft met HA?
 
-In de [meegeleverde YAML](esphome/weheat-flint-ot.yaml) zit `filter_out: nan` waardoor het laatste geldige setpoint behouden blijft. De CV-schakelaar reageert alleen op de modus `heat` of `off`; bij `unavailable` (bv. terwijl HA herstart) blijft de laatste stand staan, zodat de warmtepomp niet even uitgaat. Het OpenTherm-protocol heeft zelf ook een fallback (boiler valt terug op interne logica bij signaal-verlies).
+In de [meegeleverde YAML](esphome/weheat-opentherm-bridge.yaml) zit `filter_out: nan` waardoor het laatste geldige setpoint behouden blijft. De CV-schakelaar reageert alleen op de modus `heat` of `off`; bij `unavailable` (bv. terwijl HA herstart) blijft de laatste stand staan, zodat de warmtepomp niet even uitgaat. Het OpenTherm-protocol heeft zelf ook een fallback (boiler valt terug op interne logica bij signaal-verlies).
 
 ### Hoe weet ik of de adaptieve laag werkt?
 

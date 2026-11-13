@@ -12,7 +12,6 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -22,11 +21,13 @@ from .const import (
     DEFAULT_HVAC_MODE,
     DEFAULT_TARGET_TEMP,
     DOMAIN,
+    device_info,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     KEY_HEATPUMP_STATUS,
     KEY_ROOM_TEMP,
 )
+from .coordinator import WeheatCoordinator
 
 
 def _map_pump_status(state: str | None) -> HVACAction | None:
@@ -45,7 +46,7 @@ def _map_pump_status(state: str | None) -> HVACAction | None:
     if "stand" in s or "idle" in s:
         return HVACAction.IDLE
     return None
-from .coordinator import WeheatCoordinator
+
 
 _MODE_FROM_STR = {
     HVAC_MODE_HEAT: HVACMode.HEAT,
@@ -89,12 +90,7 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_climate"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="WeHeat OpenTherm",
-            manufacturer="WeHeat",
-            model="Flint",
-        )
+        self._attr_device_info = device_info(entry.entry_id)
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -107,7 +103,7 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         """Werkelijke activiteit van de warmtepomp.
 
         Leest indien geconfigureerd de status-sensor van de WeHeat
-        (bv. sensor.flint_p40_heat_pump). Actieve cooling/heating wint
+        (bv. sensor.<warmtepomp>_heat_pump). Actieve cooling/heating wint
         van de user-mode zodat ook intern gestuurde koeling zichtbaar is.
         Zonder sensor: HVACAction.OFF bij mode OFF, anders IDLE.
         """

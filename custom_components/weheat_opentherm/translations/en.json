@@ -18,7 +18,7 @@
           "weather_entity": "Used for wind chill and sun corrections.",
           "price_sensor": "EPEX Spot, Tibber or similar; used for price correction.",
           "setpoint_entity": "Optional: input_number bridge for ESPHome. Leave empty when ESPHome reads sensor.weheat_opentherm_aanvoersetpoint directly.",
-          "heatpump_status_sensor": "E.g. sensor.flint_p40_heat_pump from the WeHeat integration. Shows current Heating/Cooling/Stand-by on the climate tile."
+          "heatpump_status_sensor": "E.g. sensor.<heat pump>_heat_pump from the WeHeat integration. Shows current Heating/Cooling/Stand-by on the climate tile."
         }
       }
     },
@@ -74,7 +74,7 @@
           "heatpump_status_sensor": "Heat pump status sensor"
         },
         "data_description": {
-          "heatpump_status_sensor": "E.g. sensor.flint_p40_heat_pump from the WeHeat integration — shows actual heating/cooling/standby on the climate tile via hvac_action. Leave empty to disable."
+          "heatpump_status_sensor": "E.g. sensor.<heat pump>_heat_pump from the WeHeat integration — shows actual heating/cooling/standby on the climate tile via hvac_action. Leave empty to disable."
         }
       },
       "advanced": {
