@@ -5,6 +5,8 @@
 
 Home Assistant custom integratie die elke minuut het optimale **OpenTherm aanvoertemperatuur-setpoint** berekent voor een **WeHeat-warmtepomp** met OpenTherm-aansluiting. Het setpoint wordt via ESPHome op een ESP32-C6 OpenTherm gateway naar de warmtepomp gestuurd.
 
+Dit is een hobbyproject en geen product van WeHeat. Het staat los van de officiële WeHeat-integratie in Home Assistant en kan ernaast draaien.
+
 De berekening combineert klassieke stooklijn-regeling met kamercompensatie, weersvoorspelling (windchill + zon) en dynamische energieprijzen. Een ingebouwd lerend systeem fine-tunet de stooklijn over weken op basis van werkelijke kamer-afwijking.
 
 ## Inhoudsopgave
