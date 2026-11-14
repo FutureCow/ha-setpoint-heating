@@ -1,33 +1,40 @@
 # ============================================================
-#  SenseCAP Indicator D1 — Sensoren + Thermostaat
+#  SenseCAP Indicator D1 — Thermostaat voor de OpenTherm-setpoint-integratie
 #  ESPHome 2026.x  |  mipi_rgb platform  |  LVGL v9
-#  v1.9 — 2026-11-07 (ontdooien wit i.p.v. blauw)
+#  v2.0 — 2026-11-14 (algemene versie, reistijden weg, groter scherm)
+#
+#  Optioneel: een wandscherm dat de kamertemperatuur, het doel en het
+#  aanvoersetpoint toont, en waarmee je het doel met − en + verandert.
 # ============================================================
 
 substitutions:
   device_name: sensecap-indicator
   friendly_name: "SenseCAP Indicator"
 
-  # ── Sensorpagina ────────────────────────────────────────────
-  sensor1_entity:  "sensor.sensor_buiten_temperature"
-  sensor1_format:  "%.1f"
+  # ── In te vullen: jouw entiteiten ─────────────────────────────
+  # Climate-entiteit van de integratie. De naam volgt de taal die HA had toen
+  # je de integratie toevoegde. Nederlands: climate.weheat_opentherm_verwarmingsdoelwit,
+  # Engels: climate.weheat_opentherm_heating_target.
+  thermostat_entity: "climate.weheat_opentherm_verwarmingsdoelwit"
 
-  sensor3_entity:  "sensor.naar_aberg_new"
-  sensor3_unit:    "min"
-  sensor3_format:  "%.0f"
+  # Wat de ESPHome-bridge naar de warmtepomp stuurt: de sensor
+  # "Aanvoersetpoint (naar boiler)" van de bridge. Met de bridge-YAML uit deze
+  # repo (friendly_name "WeHeat OpenTherm") heet die zo. Heb je de bridge een
+  # andere naam gegeven, dan verandert het begin van de entity-ID mee.
+  setpoint_sent_entity: "sensor.weheat_opentherm_aanvoersetpoint_naar_boiler"
 
-  sensor4_entity:  "sensor.naar_huis_aberg_new"
-  sensor4_unit:    "min"
-  sensor4_format:  "%.0f"
+  # Status van de warmtepomp uit de officiële WeHeat-integratie. De naam hangt
+  # af van je model (bijvoorbeeld sensor.flint_p40_heat_pump). De boog kleurt op
+  # de toestanden heating (oranje), defrosting (wit) en cooling (blauw); elke
+  # andere toestand is grijs.
+  pump_status_entity: "sensor.weheat_heat_pump"
 
-  # ── Thermostaatpagina ────────────────────────────────────────
-  thermostat_entity:  "climate.weheat_opentherm_verwarmingsdoelwit"
-  # Wat de bridge naar de warmtepomp stuurt (sensor van de ESP zelf) en de
-  # status-sensor uit de WeHeat-integratie.
-  setpoint_sent_entity: "sensor.weheat_flint_thermostat_aanvoersetpoint_naar_boiler"
-  pump_status_entity:   "sensor.flint_p40_heat_pump"
-  thermostat_min:     "10"
-  thermostat_max:     "25"
+  # Buitentemperatuur rechtsboven, een willekeurige temperatuursensor.
+  outside_temp_entity: "sensor.buitentemperatuur"
+
+  # Grenzen voor de − en + knoppen (°C, stappen van 0,5).
+  thermostat_min: "10"
+  thermostat_max: "25"
 
 # ============================================================
 #  Hardware basis
@@ -81,31 +88,16 @@ wifi:
 captive_portal:
 
 # ============================================================
-#  Custom fonts (groter dan ingebouwde montserrat_48)
+#  Lettertype voor de grote kamertemperatuur
+#  (groter dan de ingebouwde montserrat_48)
 # ============================================================
 
 font:
   - file: "gfonts://Roboto"
-    id: roboto_96
-    size: 96
+    id: roboto_112
+    size: 112
     bpp: 4
     glyphs: "0123456789.-°"
-
-# ============================================================
-#  MDI icons (via ESPHome image: mdi:, geen externe download)
-# ============================================================
-
-image:
-  - file: mdi:car
-    id: icon_car
-    resize: 32x32
-    type: RGB
-    transparency: alpha_channel
-  - file: mdi:home
-    id: icon_home
-    resize: 32x32
-    type: RGB
-    transparency: alpha_channel
 
 # ============================================================
 #  Hardware peripherals
@@ -177,7 +169,7 @@ touchscreen:
           brightness: 100%
 
 # ============================================================
-#  Globale variabele — houdt setpoint bij voor +/− knoppen
+#  Globale variabele — houdt het doel bij voor de − en + knoppen
 # ============================================================
 
 globals:
@@ -191,38 +183,16 @@ globals:
 # ============================================================
 
 sensor:
-  # ── Pagina 1 ─────────────────────────────────────────────────
   - platform: homeassistant
-    id: ha_sensor1
-    entity_id: ${sensor1_entity}
+    id: ha_outside_temp
+    entity_id: ${outside_temp_entity}
     on_value:
       - lvgl.label.update:
-          id: lbl_thermo_buiten
+          id: lbl_outside
           text:
-            format: "${sensor1_format}°"
+            format: "%.1f°"
             args: [x]
 
-  - platform: homeassistant
-    id: ha_reistijd_werk
-    entity_id: ${sensor3_entity}
-    on_value:
-      - lvgl.label.update:
-          id: lbl_thermo_werk
-          text:
-            format: "${sensor3_format} ${sensor3_unit}"
-            args: [x]
-
-  - platform: homeassistant
-    id: ha_reistijd_huis
-    entity_id: ${sensor4_entity}
-    on_value:
-      - lvgl.label.update:
-          id: lbl_thermo_huis
-          text:
-            format: "${sensor4_format} ${sensor4_unit}"
-            args: [x]
-
-  # ── Pagina 2 ─────────────────────────────────────────────────
   - platform: homeassistant
     id: ha_boiler_setpoint
     entity_id: ${setpoint_sent_entity}
@@ -244,18 +214,18 @@ sensor:
             format: "%.1f°"
             args: [x]
       - lambda: |-
-          // Positie op de boog (135° tot 45° via bovenkant = 270° range)
-          float ratio = (x - 5.0f) / 25.0f;  // 5–30°C → 0.0–1.0
+          // Positie op de boog (135° tot 45° via de bovenkant = 270°)
+          float ratio = (x - 5.0f) / 25.0f;  // 5–30 °C → 0.0–1.0
           if (ratio < 0.0f) ratio = 0.0f;
           if (ratio > 1.0f) ratio = 1.0f;
           float angle_deg = 135.0f + ratio * 270.0f;
           float angle_rad = angle_deg * 3.14159265f / 180.0f;
-          // Arc center (65+175, 35+175) = (240, 210), radius = 175
-          int cx = 240, cy = 210, r = 175;
+          // Middelpunt van de boog (40+200, 30+200) = (240, 230), straal 200
+          int cx = 240, cy = 230, r = 200;
           int dx = cx + (int)(r * cosf(angle_rad));
           int dy = cy + (int)(r * sinf(angle_rad));
-          // Stip is 14×14, dus center op dx,dy
-          lv_obj_set_pos(id(current_temp_dot), dx - 7, dy - 7);
+          // Stip is 16×16, dus midden op dx,dy
+          lv_obj_set_pos(id(current_temp_dot), dx - 8, dy - 8);
 
   - platform: homeassistant
     id: ha_thermo_target
@@ -294,10 +264,13 @@ text_sensor:
           lv_obj_set_style_arc_color(id(thermo_arc), lv_color_hex(color), LV_PART_INDICATOR);
 
 # ============================================================
-#  LVGL
+#  LVGL — één pagina (480×480)
 #
-#  Pagina 1: 3 sensorkaarten + navigatieknop
-#  Pagina 2: Thermostaat + navigatieknop
+#  Linksboven: aanvoersetpoint naar de warmtepomp (oranje)
+#  Rechtsboven: buitentemperatuur (blauw)
+#  Midden: boog met het doel, witte stip op de kamertemperatuur,
+#          grote kamertemperatuur en daaronder het doel
+#  Onder: − en + knoppen voor het doel
 # ============================================================
 
 lvgl:
@@ -310,107 +283,106 @@ lvgl:
     dark_mode: true
 
   pages:
-
-    # ── Enige pagina: Thermostaat + sensoren ──────────────────
     - id: thermostat_page
       bg_color: 0x0d1117
       bg_opa: COVER
       widgets:
 
-        # Sensorrij bovenin
+        # Bovenste rij
         - label:
             id: lbl_boiler
             x: 10
-            y: 8
-            width: 110
+            y: 6
+            width: 120
             text: "--°"
-            text_font: montserrat_28
+            text_font: montserrat_32
             text_color: 0xff7043
             text_align: LEFT
 
         - label:
-            id: lbl_thermo_buiten
-            x: 340
+            id: lbl_outside
+            x: 335
             y: 2
-            width: 125
+            width: 135
             text: "--°"
             text_font: montserrat_42
             text_color: 0x4fc3f7
             text_align: RIGHT
 
-        # Arc (350×350, bereik 5.0–30.0°C ×10) — setpoint, onder
+        # Boog (400×400, bereik 5.0–30.0 °C ×10): het doel
         - arc:
             id: thermo_arc
-            x: 65
-            y: 35
-            width: 350
-            height: 350
+            x: 40
+            y: 30
+            width: 400
+            height: 400
             min_value: 50
             max_value: 300
             value: 200
             arc_color: 0x30363d
-            arc_width: 22
+            arc_width: 26
             start_angle: 135
             end_angle: 45
             bg_opa: TRANSP
             indicator:
               arc_color: 0xff7043
-              arc_width: 22
+              arc_width: 26
             knob:
               bg_opa: TRANSP
               border_width: 0
 
-        # Witte stip op de boog voor huidige temperatuur
+        # Witte stip op de boog voor de kamertemperatuur
         - obj:
             id: current_temp_dot
-            x: 234
-            y: 34
-            width: 14
-            height: 14
-            radius: 7
+            x: 232
+            y: 22
+            width: 16
+            height: 16
+            radius: 8
             bg_color: 0xffffff
             bg_opa: COVER
             border_width: 2
             border_color: 0x333333
 
-        # Huidige temperatuur gecentreerd in de arc
+        # Kamertemperatuur in het midden van de boog
         - label:
             id: lbl_thermo_current
-            x: 65
-            y: 138
-            width: 350
+            x: 40
+            y: 124
+            width: 400
             text: "--°"
-            text_font: roboto_96
+            text_font: roboto_112
             text_color: 0xffffff
             text_align: CENTER
 
         - label:
-            x: 65
-            y: 238
-            width: 350
+            x: 40
+            y: 260
+            width: 400
             text: "huidig"
-            text_font: montserrat_14
+            text_font: montserrat_16
             text_color: 0x8b949e
             text_align: CENTER
 
+        # Doel
         - label:
             id: lbl_setpoint_inside
-            x: 65
-            y: 272
-            width: 350
+            x: 40
+            y: 288
+            width: 400
             text: "--°"
-            text_font: montserrat_42
+            text_font: montserrat_48
             text_color: 0xc0c0c0
             text_align: CENTER
 
-        # Setpoint rij
+        # − en + knoppen
         - button:
-            x: 155
-            y: 360
-            width: 70
-            height: 52
+            x: 136
+            y: 392
+            width: 90
+            height: 66
             bg_color: 0x21262d
-            radius: 10
+            radius: 12
             border_width: 1
             border_color: 0x30363d
             on_click:
@@ -427,16 +399,16 @@ lvgl:
               - label:
                   align: CENTER
                   text: "-"
-                  text_font: montserrat_32
+                  text_font: montserrat_42
                   text_color: 0xff7043
 
         - button:
-            x: 255
-            y: 360
-            width: 70
-            height: 52
+            x: 254
+            y: 392
+            width: 90
+            height: 66
             bg_color: 0x21262d
-            radius: 10
+            radius: 12
             border_width: 1
             border_color: 0x30363d
             on_click:
@@ -453,42 +425,5 @@ lvgl:
               - label:
                   align: CENTER
                   text: "+"
-                  text_font: montserrat_32
+                  text_font: montserrat_42
                   text_color: 0xff7043
-
-        # Reistijden
-        - image:
-            src: icon_car
-            x: 83
-            y: 425
-            width: 32
-            height: 32
-            recolor: 0x66bb6a
-            recolor_opa: COVER
-        - label:
-            id: lbl_thermo_werk
-            x: 120
-            y: 427
-            width: 100
-            text: "--"
-            text_font: montserrat_28
-            text_color: 0x66bb6a
-            text_align: LEFT
-
-        - image:
-            src: icon_home
-            x: 260
-            y: 425
-            width: 32
-            height: 32
-            recolor: 0x4fc3f7
-            recolor_opa: COVER
-        - label:
-            id: lbl_thermo_huis
-            x: 297
-            y: 427
-            width: 100
-            text: "--"
-            text_font: montserrat_28
-            text_color: 0x4fc3f7
-            text_align: LEFT

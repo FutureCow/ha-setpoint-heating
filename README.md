@@ -18,6 +18,7 @@ De berekening combineert klassieke stooklijn-regeling met kamercompensatie, weer
   - [Stap 2 — Integratie configureren](#stap-2--integratie-configureren)
   - [Stap 3 — ESPHome flashen](#stap-3--esphome-flashen)
   - [Stap 4 — Lovelace card](#stap-4--lovelace-card-optioneel)
+  - [Stap 5 — SenseCAP Indicator](#stap-5--sensecap-indicator-optioneel)
 - [Architectuur](#architectuur)
 - [Aanpasbare parameters](#aanpasbare-parameters)
 - [Adaptieve stooklijn](#adaptieve-stooklijn)
@@ -163,6 +164,22 @@ type: custom:weheat-opentherm-card
 entity_prefix: sensor.weheat_opentherm
 target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 ```
+
+### Stap 5 — SenseCAP Indicator (optioneel)
+
+Met een SenseCAP Indicator D1 van Seeed Studio heb je een wandscherm voor de thermostaat. Het toont de kamertemperatuur, het doel, het aanvoersetpoint dat naar de warmtepomp gaat en de buitentemperatuur. Met − en + verander je het doel in stappen van 0,5 °C. De boog kleurt naar de status van de warmtepomp: oranje bij verwarmen, wit bij ontdooien, blauw bij koelen en grijs bij stilstand.
+
+Gebruik de [meegeleverde YAML](esphome/sensecap-indicator.yaml) en vul bovenin bij `substitutions` in:
+
+| Substitution | Wat |
+|---|---|
+| `thermostat_entity` | De climate-entiteit van deze integratie (Nederlands `..._verwarmingsdoelwit`, Engels `..._heating_target`) |
+| `setpoint_sent_entity` | De sensor "Aanvoersetpoint (naar boiler)" van de bridge uit stap 3 |
+| `pump_status_entity` | De status-sensor van de warmtepomp uit de officiële WeHeat-integratie |
+| `outside_temp_entity` | Een temperatuursensor voor buiten |
+| `thermostat_min` / `thermostat_max` | Grenzen voor de − en + knoppen |
+
+De secrets hebben dezelfde namen als bij de bridge. De helderheid van het scherm regelt de YAML niet: de knop op de zijkant zet de achtergrondverlichting aan of uit, en een aanraking zet hem op 100 %. Wil je dat hij 's nachts dimt of uitgaat, maak daarvoor dan een automatisering in HA op de entiteit `light.<naam>_backlight`.
 
 ## Architectuur
 
