@@ -11,7 +11,7 @@ from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
-_STORAGE_VERSION = 1
+STORAGE_VERSION = 1
 
 # Tuning constants
 _LEARNING_INTERVAL = timedelta(hours=1)
@@ -27,6 +27,11 @@ _PUMP_HEATING_STATE = "heating"   # state van de WeHeat status-sensor bij verwar
 # Pomp maakt tapwater: de kamer krijgt dan geen warmte, maar dat ligt niet aan
 # de stooklijn. Tijdens deze standen wordt niets gemeten, in beide richtingen.
 _PUMP_SKIP_STATES = frozenset({"dhw", "legionella_prevention"})
+
+
+def storage_key(entry_id: str) -> str:
+    """Sleutel van de opgeslagen leerstaat voor één config entry."""
+    return f"weheat_opentherm/{entry_id}_learning"
 
 
 class LearningEngine:
@@ -47,9 +52,7 @@ class LearningEngine:
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         """Initialiseer engine met persistent storage."""
         self._hass = hass
-        self._store: Store = Store(
-            hass, _STORAGE_VERSION, f"weheat_opentherm/{entry_id}_learning"
-        )
+        self._store: Store = Store(hass, STORAGE_VERSION, storage_key(entry_id))
         self._loaded = False
         self._data: dict[str, Any] = self._default_data()
 

@@ -48,6 +48,10 @@ def _map_pump_status(state: str | None) -> HVACAction | None:
     return None
 
 
+# HA hernoemt de temperatuurvelden van climate naar native_* en schaft de oude
+# namen af in 2027.11. Oudere HA-versies kennen de nieuwe namen nog niet.
+_NATIVE_API = hasattr(ClimateEntity, "native_target_temperature")
+
 _MODE_FROM_STR = {
     HVAC_MODE_HEAT: HVACMode.HEAT,
     HVAC_MODE_OFF: HVACMode.OFF,
@@ -80,7 +84,10 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
         | ClimateEntityFeature.TURN_ON
         | ClimateEntityFeature.TURN_OFF
     )
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    if _NATIVE_API:
+        _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
+    else:
+        _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
     _attr_min_temp = 10.0
     _attr_max_temp = 30.0
@@ -115,17 +122,22 @@ class WeheatClimate(CoordinatorEntity[WeheatCoordinator], ClimateEntity):
             return HVACAction.OFF
         return pump_action or HVACAction.IDLE
 
-    @property
-    def current_temperature(self) -> float | None:
+    def _room_temperature(self) -> float | None:
         """Huidige kamertemperatuur uit de coordinator."""
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get(KEY_ROOM_TEMP)
 
-    @property
-    def target_temperature(self) -> float:
+    def _target_temperature(self) -> float:
         """Ingestelde doeltemperatuur uit de config entry options."""
         return float(self._entry.options.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP))
+
+    if _NATIVE_API:
+        native_current_temperature = property(_room_temperature)
+        native_target_temperature = property(_target_temperature)
+    else:
+        current_temperature = property(_room_temperature)
+        target_temperature = property(_target_temperature)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Sla nieuwe doeltemperatuur op en ververs de coordinator."""

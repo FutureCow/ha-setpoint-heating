@@ -5,9 +5,11 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import WeheatCoordinator
+from .learning import STORAGE_VERSION, storage_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +34,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Ruim de opgeslagen leerstaat op als de integratie wordt verwijderd."""
+    await Store(hass, STORAGE_VERSION, storage_key(entry.entry_id)).async_remove()
 
 
 async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:

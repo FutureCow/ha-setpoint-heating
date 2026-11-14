@@ -119,7 +119,11 @@ async def _async_tibber_prices(
         )
     except Exception as exc:  # noqa: BLE001
         _LOGGER.warning("Kan Tibber-prijzen niet ophalen: %s", exc)
-        return cached[1] if cached else []
+        # Ook een mislukte poging onthouden: anders volgt elke minuut een
+        # nieuwe aanroep en een nieuwe waarschuwing.
+        entries = cached[1] if cached else []
+        _tibber_cache[price_sensor] = (now, entries)
+        return entries
 
     homes = (response or {}).get("prices") or {}
     # Meerdere huizen: neem het huis van deze sensor, anders het eerste.

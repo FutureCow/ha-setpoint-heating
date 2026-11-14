@@ -221,8 +221,17 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     current_price,
                     classify_price(current_price, upcoming_prices),
                 )
+                # Zonder prijslijst (nog niet geladen) is de indeling altijd
+                # "normaal". Die niet vasthouden: zodra de lijst er is, moet
+                # de indeling alsnog bepaald worden.
+                if len(upcoming_prices) < 2:
+                    category, self._price_class = self._price_class[1], None
+                else:
+                    category = self._price_class[1]
+            else:
+                category = self._price_class[1]
             t_prijs = calculate_price_correction(
-                self._price_class[1],
+                category,
                 room_temp,
                 target_temp,
                 max_price_corr,

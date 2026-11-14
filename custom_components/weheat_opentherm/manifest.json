@@ -1,7 +1,14 @@
 {
   "domain": "weheat_opentherm",
   "name": "WeHeat OpenTherm Setpoint",
-  "codeowners": ["@FutureCow"],
+  "after_dependencies": [
+    "forecast_solar",
+    "tibber",
+    "weather"
+  ],
+  "codeowners": [
+    "@FutureCow"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/FutureCow/ha-setpoint-heating",
   "iot_class": "local_polling",
