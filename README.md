@@ -136,7 +136,23 @@ sensor:
 
 `ch_enable` wordt in de YAML door een switch geschakeld die de actieve modus van de integratie volgt.
 
-Vul je eigen `wifi`, `api`, `ota` secrets in en flash de ESP. Voeg het apparaat toe in HA via **Instellingen → Apparaten → ESPHome**.
+Zet in `secrets.yaml` van ESPHome de namen die de YAML verwacht: `wifi_ssid`, `wifi_password`, `ap_password`, `api_key` en `ota_password`. Flash daarna de ESP en voeg het apparaat toe in HA via **Instellingen → Apparaten → ESPHome**.
+
+**Andere hardware?** De YAML is gemaakt voor een ESP32-C6-DevKitC-1. Pas bij een ander bord of een andere adapter aan:
+
+| Regel | Nu | Wanneer aanpassen |
+|---|---|---|
+| `esp32: board` / `variant` | `esp32-c6-devkitc-1` / `esp32c6` | Ander ESP32-bord |
+| `opentherm: in_pin` / `out_pin` | `GPIO10` / `GPIO11` | Je OpenTherm-adapter zit op andere pinnen |
+| `status_led: pin` | `GPIO8` | Je bord heeft daar geen led; pas de pin aan of haal het blok weg |
+
+**Andere warmtepomp of ketel?** De OpenTherm-sensoren zijn afgestemd op de Flint P40:
+
+- CV-druk, branderstarts, branderuren en CV-pompuren staan er niet in, want de Flint P40 geeft daar altijd 0. Levert jouw toestel ze wel, zet ze dan terug onder `- platform: opentherm` als `ch_pressure`, `burner_starts`, `burner_operation_hours` en `ch_pump_operation_hours`.
+- Het modulatieniveau is bij de Flint alleen 0 of 127, dus aan of uit en geen percentage.
+- De temperaturen worden afgerond op 0,1 °C en hooguit eens per 30 seconden doorgestuurd (`throttle_average`, `round`, `delta`). Zonder die filters komt elke schommeling van 1/256 °C als nieuwe state in de recorder.
+
+De integratie en de Lovelace-kaart gebruiken geen van deze OpenTherm-sensoren.
 
 ### Stap 4 — Lovelace card (optioneel)
 
