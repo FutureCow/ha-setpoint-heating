@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>SenseCAP weergave</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&family=Roboto:wght@400&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: transparent; }
+  #shot { zoom: 2; display: inline-block; padding: 24px; background: #f2f2f2; }
+  .case {
+    width: 560px; height: 560px; border-radius: 44px; background: #fbfbfb;
+    box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px #e2e2e2;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .glass {
+    width: 516px; height: 516px; border-radius: 26px; background: #050608;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .screen { position: relative; width: 480px; height: 480px; background: #0d1117; overflow: hidden; }
+  .lbl { position: absolute; white-space: nowrap; line-height: 1.2; }
+  .m { font-family: 'Montserrat', sans-serif; font-weight: 500; }
+  .r { font-family: 'Roboto', sans-serif; font-weight: 400; }
+  svg { position: absolute; left: 0; top: 0; }
+  .btn {
+    position: absolute; width: 90px; height: 66px; top: 392px; border-radius: 12px;
+    background: #21262d; box-shadow: inset 0 0 0 1px #30363d;
+  }
+  .bar { position: absolute; background: #ff7043; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="shot">
+  <div class="case"><div class="glass"><div class="screen" id="screen">
+    <svg width="480" height="480" id="arcs"></svg>
+    <!-- bovenste rij -->
+    <div class="lbl m" style="left:10px; top:2px; width:135px; font-size:42px; color:#ff7043; text-align:left">24.5°</div>
+    <div class="lbl m" style="left:335px; top:2px; width:135px; font-size:42px; color:#4fc3f7; text-align:right">7.9°</div>
+    <!-- midden -->
+    <div class="lbl r" style="left:40px; top:124px; width:400px; font-size:112px; color:#ffffff; text-align:center; line-height:1.17">19.8°</div>
+    <div class="lbl m" style="left:40px; top:260px; width:400px; font-size:16px; color:#8b949e; text-align:center">huidig</div>
+    <div class="lbl m" style="left:40px; top:288px; width:400px; font-size:48px; color:#c0c0c0; text-align:center">20.0°</div>
+    <!-- knoppen -->
+    <div class="btn" style="left:136px"><div class="bar" style="left:31px; top:30px; width:28px; height:6px"></div></div>
+    <div class="btn" style="left:254px">
+      <div class="bar" style="left:31px; top:30px; width:28px; height:6px"></div>
+      <div class="bar" style="left:42px; top:19px; width:6px; height:28px"></div>
+    </div>
+  </div></div></div>
+</div>
+<script>
+  // Zelfde rekenwerk als de YAML: boog 400×400 op (40,30), rand 26 breed.
+  const cx = 240, cy = 230, r = 187, w = 26;
+  const pt = a => { const t = a * Math.PI / 180; return [cx + r * Math.cos(t), cy + r * Math.sin(t)]; };
+  const arc = (a0, a1, color) => {
+    const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    return `<path d="M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>`;
+  };
+  const target = 20.0, room = 19.8;                 // doel en kamertemperatuur
+  const aTarget = 135 + ((target * 10 - 50) / 250) * 270;
+  const aRoom = 135 + Math.min(1, Math.max(0, (room - 5) / 25)) * 270;
+  const [dx, dy] = pt(aRoom);
+  document.getElementById('arcs').innerHTML =
+    arc(135, 405, '#30363d') +
+    arc(135, aTarget, '#ff7043') +                     // status heating = oranje
+    `<circle cx="${dx}" cy="${dy}" r="7" fill="#ffffff" stroke="#333333" stroke-width="2"/>`;
+</script>
+</body>
+</html>

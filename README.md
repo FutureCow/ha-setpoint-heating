@@ -169,6 +169,10 @@ target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 
 Met een SenseCAP Indicator D1 van Seeed Studio heb je een wandscherm voor de thermostaat. Het toont de kamertemperatuur, het doel, het aanvoersetpoint dat naar de warmtepomp gaat en de buitentemperatuur. Met − en + verander je het doel in stappen van 0,5 °C. De boog kleurt naar de status van de warmtepomp: oranje bij `heating`, wit bij `defrosting` (ontdooien, bewust niet blauw zodat het niet op koelen lijkt), blauw bij `cooling` en grijs bij elke andere status.
 
+<img src="docs/sensecap-indicator.png" alt="SenseCAP Indicator als thermostaat: aanvoersetpoint linksboven, buitentemperatuur rechtsboven, kamertemperatuur groot in de boog, doel eronder en knoppen voor min en plus" width="400">
+
+*Weergave van het scherm, nagetekend met de maten en kleuren uit de YAML (geen foto). De pomp verwarmt, dus de boog is oranje.*
+
 Gebruik de [meegeleverde YAML](esphome/sensecap-indicator.yaml) en vul bovenin bij `substitutions` in:
 
 | Substitution | Wat |
