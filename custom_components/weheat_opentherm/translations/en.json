@@ -3,27 +3,28 @@
     "step": {
       "user": {
         "title": "Set up WeHeat OpenTherm",
-        "description": "Select the sensors and optional services for supply temperature calculation.",
+        "description": "Choose the sensors for the calculation. Only room and outdoor temperature are required. Afterwards, set your heating curve via Configure (the default curve is an estimate) and flash the ESPHome bridge from the README.",
         "data": {
           "room_temp_sensor": "Room temperature sensor",
           "outdoor_temp_sensor": "Outdoor temperature sensor",
           "weather_entity": "Weather entity (optional)",
           "price_sensor": "Energy price sensor (optional)",
-          "setpoint_entity": "Setpoint input_number entity",
-          "heatpump_status_sensor": "Heat pump status sensor (optional)"
+          "setpoint_entity": "Setpoint input_number (optional)",
+          "heatpump_status_sensor": "Heat pump status sensor (recommended)"
         },
         "data_description": {
-          "room_temp_sensor": "Sensor measuring the current room temperature.",
-          "outdoor_temp_sensor": "Sensor measuring the outdoor temperature.",
-          "weather_entity": "Used for wind chill and sun corrections.",
-          "price_sensor": "EPEX Spot, Tibber or similar; used for price correction.",
-          "setpoint_entity": "Optional: input_number bridge for ESPHome. Leave empty when ESPHome reads sensor.weheat_opentherm_aanvoersetpoint directly.",
-          "heatpump_status_sensor": "E.g. sensor.<heat pump>_heat_pump from the WeHeat integration. Shows current Heating/Cooling/Stand-by on the climate tile."
+          "room_temp_sensor": "Temperature of the room that matters most for heating, usually the living room. Not near a window, stove or in the sun. Use the same sensor in the ESPHome bridge.",
+          "outdoor_temp_sensor": "Preferably a stable source: your own sensor in the shade, or the weather entity's temperature via a template. Not the WeHeat's own outdoor sensor, which fluctuates while the compressor runs. If this sensor is unavailable, the integration stops calculating and the ESP keeps the last setpoint.",
+          "weather_entity": "For wind and sun corrections. Must provide an hourly forecast, such as Met.no (default in HA), OpenWeatherMap or KNMI; Buienradar only has a daily forecast. If Forecast.Solar is set up, the sun correction uses it.",
+          "price_sensor": "Dynamic electricity price with the upcoming prices in an attribute. Tested with Zonneplan; Nordpool and ENTSO-e should work. Without a price list the price correction stays 0.",
+          "setpoint_entity": "Usually leave empty: the ESPHome bridge reads this integration's supply setpoint sensor. Only fill in if you also want the setpoint in an input_number.",
+          "heatpump_status_sensor": "The status sensor from the WeHeat integration, e.g. sensor.<heat pump>_heat_pump. With it the curve does not learn from sun or hot water, and the thermostat shows whether the pump is heating."
         }
       }
     },
     "error": {
-      "unknown": "Unexpected error occurred."
+      "unknown": "Unexpected error occurred.",
+      "no_hourly_forecast": "This weather entity has no hourly forecast. Choose e.g. Met.no or leave the field empty."
     },
     "abort": {
       "already_configured": "WeHeat OpenTherm is already configured."
@@ -53,7 +54,7 @@
       },
       "curve": {
         "title": "Heating curve configuration",
-        "description": "Define 5 (outdoor temperature → supply temperature) pairs. Points are automatically sorted by outdoor temperature.",
+        "description": "Define 5 (outdoor temperature → supply temperature) pairs. Points are automatically sorted by outdoor temperature. As a guide for underfloor heating: about 33 °C at −10 °C outdoors and 21 °C at 15 °C. Too warm or too cold? Shift all points; the adaptive curve then does the fine-tuning.",
         "data": {
           "p1_outdoor": "Point 1 – outdoor temperature",
           "p1_flow": "Point 1 – supply temperature",
@@ -74,7 +75,7 @@
           "heatpump_status_sensor": "Heat pump status sensor"
         },
         "data_description": {
-          "heatpump_status_sensor": "E.g. sensor.<heat pump>_heat_pump from the WeHeat integration — shows actual heating/cooling/standby on the climate tile via hvac_action. Leave empty to disable."
+          "heatpump_status_sensor": "The status sensor from the WeHeat integration, e.g. sensor.<heat pump>_heat_pump. Recommended: with it the curve does not learn from sun or hot water, and the thermostat shows whether the pump is heating. Leave empty to disable."
         }
       },
       "advanced": {
@@ -97,37 +98,87 @@
   },
   "entity": {
     "sensor": {
-      "outdoor_temp": { "name": "Outdoor temperature" },
-      "room_temp": { "name": "Room temperature" },
-      "t_stooklijn": { "name": "Heating curve base temperature" },
-      "t_definitief": { "name": "Supply setpoint" },
-      "t_kamer_comp": { "name": "Room compensation" },
-      "t_windchill": { "name": "Wind chill correction" },
-      "t_zon": { "name": "Sun correction" },
-      "t_prijs": { "name": "Price correction" },
-      "current_price": { "name": "Current energy price" },
-      "curve_offset_1": { "name": "Curve offset 1 (coldest point)" },
-      "curve_offset_2": { "name": "Curve offset 2" },
-      "curve_offset_3": { "name": "Curve offset 3" },
-      "curve_offset_4": { "name": "Curve offset 4" },
-      "curve_offset_5": { "name": "Curve offset 5 (warmest point)" },
-      "actieve_modus": { "name": "Active mode" }
+      "outdoor_temp": {
+        "name": "Outdoor temperature"
+      },
+      "room_temp": {
+        "name": "Room temperature"
+      },
+      "t_stooklijn": {
+        "name": "Heating curve base temperature"
+      },
+      "t_definitief": {
+        "name": "Supply setpoint"
+      },
+      "t_kamer_comp": {
+        "name": "Room compensation"
+      },
+      "t_windchill": {
+        "name": "Wind chill correction"
+      },
+      "t_zon": {
+        "name": "Sun correction"
+      },
+      "t_prijs": {
+        "name": "Price correction"
+      },
+      "current_price": {
+        "name": "Current energy price"
+      },
+      "curve_offset_1": {
+        "name": "Curve offset 1 (coldest point)"
+      },
+      "curve_offset_2": {
+        "name": "Curve offset 2"
+      },
+      "curve_offset_3": {
+        "name": "Curve offset 3"
+      },
+      "curve_offset_4": {
+        "name": "Curve offset 4"
+      },
+      "curve_offset_5": {
+        "name": "Curve offset 5 (warmest point)"
+      },
+      "actieve_modus": {
+        "name": "Active mode"
+      }
     },
     "number": {
-      "compensation_factor": { "name": "Room compensation factor" },
-      "t_min": { "name": "Minimum supply temperature" },
-      "t_max": { "name": "Maximum supply temperature" },
-      "forecast_hours": { "name": "Look-ahead window" },
-      "max_price_correction": { "name": "Max price correction" },
-      "learning_rate": { "name": "Learning rate (0 = off)" },
-      "stookgrens": { "name": "Heating threshold (above = no heating)" },
-      "stookgrens_hysterese": { "name": "Heating threshold hysteresis (back on below threshold − this)" }
+      "compensation_factor": {
+        "name": "Room compensation factor"
+      },
+      "t_min": {
+        "name": "Minimum supply temperature"
+      },
+      "t_max": {
+        "name": "Maximum supply temperature"
+      },
+      "forecast_hours": {
+        "name": "Look-ahead window"
+      },
+      "max_price_correction": {
+        "name": "Max price correction"
+      },
+      "learning_rate": {
+        "name": "Learning rate (0 = off)"
+      },
+      "stookgrens": {
+        "name": "Heating threshold (above = no heating)"
+      },
+      "stookgrens_hysterese": {
+        "name": "Heating threshold hysteresis (back on below threshold − this)"
+      }
     },
     "climate": {
-      "thermostat": { "name": "Heating target" }
+      "thermostat": {
+        "name": "Heating target"
+      }
     },
     "button": {
-      "reset_learning": { "name": "Reset adaptive curve" }
+      "reset_learning": {
+        "name": "Reset adaptive curve"
+      }
     }
   }
 }

@@ -62,7 +62,7 @@ T = clamp(T, T_min, T_max)
 - Home Assistant **2024.11** of nieuwer
 - WeHeat-warmtepomp met OpenTherm-aansluiting. Gebouwd en getest met een Flint P40; andere WeHeat-modellen met OpenTherm zouden op dezelfde manier moeten werken, maar zijn niet getest
 - ESP32-C6 (of een ander OpenTherm-compatibel ESP) met DIYLESS / Ihormelnyk OpenTherm shield
-- Een weer-entiteit in HA (Buienradar, OpenWeatherMap, KNMI, etc.) — optioneel maar aanbevolen
+- Een weer-entiteit met uurvoorspelling (Met.no, OpenWeatherMap, KNMI; niet Buienradar) — optioneel maar aanbevolen
 - Een dynamische energieprijssensor met de komende prijzen in een attribuut (zie [prijssensoren](#welke-prijssensoren-werken)) — optioneel
 - HACS geïnstalleerd
 
@@ -90,10 +90,10 @@ T = clamp(T, T_min, T_max)
    |---|---|---|
    | Kamertemperatuursensor | ✅ | `sensor.woonkamer_temperatuur` |
    | Buitentemperatuursensor | ✅ | `sensor.knmi_temperatuur` of template-sensor (zie [tips](#beter-buitentemperatuur-gebruiken)) |
-   | Weer-entiteit | optioneel | `weather.buienradar` |
+   | Weer-entiteit | optioneel | `weather.forecast_home` (Met.no). Moet een uurvoorspelling hebben; Buienradar heeft die niet |
    | Energieprijssensor | optioneel | `sensor.zonneplan_current_electricity_tariff` |
-   | Setpoint-bridge | optioneel | leeg laten — ESPHome leest direct van integratiesensor |
-   | Warmtepomp status-sensor | optioneel | `sensor.<warmtepomp>_heat_pump` uit de WeHeat-integratie |
+   | Setpoint input_number | optioneel | leeg laten — ESPHome leest direct van integratiesensor |
+   | Warmtepomp status-sensor | aanbevolen | `sensor.<warmtepomp>_heat_pump` uit de WeHeat-integratie; nodig om niet te leren van zon en tapwater |
 
 4. **Doorloop de 4 options-stappen** voor temperatuurinstellingen, stooklijn en geavanceerde correcties (kun je later altijd aanpassen via CONFIGUREREN op de integratie).
 

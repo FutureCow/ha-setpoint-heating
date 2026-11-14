@@ -6,6 +6,7 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, FlowResult, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers import selector
@@ -54,10 +55,15 @@ class WeheatConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Eerste stap: sensor-entiteiten configureren."""
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Verwijder lege optionele velden
             cleaned = {k: v for k, v in user_input.items() if v}
-            return self.async_create_entry(title="WeHeat OpenTherm", data=cleaned)
+            weather = cleaned.get(CONF_WEATHER_ENTITY)
+            if weather and not self._has_hourly_forecast(weather):
+                errors[CONF_WEATHER_ENTITY] = "no_hourly_forecast"
+            else:
+                return self.async_create_entry(title="WeHeat OpenTherm", data=cleaned)
 
         schema = vol.Schema(
             {
@@ -88,7 +94,22 @@ class WeheatConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
-        return self.async_show_form(step_id="user", data_schema=schema)
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    def _has_hourly_forecast(self, entity_id: str) -> bool:
+        """True als de weer-entiteit een uurvoorspelling levert.
+
+        De integratie vraagt type "hourly" op; zonder die functie (bv.
+        Buienradar) blijven wind- en zoncorrectie altijd 0. Een entiteit die
+        nog niet geladen is, wordt toegelaten.
+        """
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return True
+        features = int(state.attributes.get("supported_features") or 0)
+        return bool(features & WeatherEntityFeature.FORECAST_HOURLY)
 
     @staticmethod
     @callback

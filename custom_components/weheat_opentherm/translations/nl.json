@@ -3,27 +3,28 @@
     "step": {
       "user": {
         "title": "WeHeat OpenTherm instellen",
-        "description": "Selecteer de sensoren en optionele diensten voor de aanvoertemperatuurberekening.",
+        "description": "Kies de sensoren voor de berekening. Alleen kamer- en buitentemperatuur zijn verplicht. Stel daarna via Configureren je stooklijn in (de standaardlijn is een schatting) en flash de ESPHome-bridge uit de README.",
         "data": {
           "room_temp_sensor": "Kamertemperatuursensor",
           "outdoor_temp_sensor": "Buitentemperatuursensor",
           "weather_entity": "Weer-entiteit (optioneel)",
           "price_sensor": "Energieprijssensor (optioneel)",
-          "setpoint_entity": "Setpoint input_number entiteit",
-          "heatpump_status_sensor": "Warmtepomp status-sensor (optioneel)"
+          "setpoint_entity": "Setpoint input_number (optioneel)",
+          "heatpump_status_sensor": "Warmtepomp status-sensor (aanbevolen)"
         },
         "data_description": {
-          "room_temp_sensor": "Sensor die de huidige kamertemperatuur meet.",
-          "outdoor_temp_sensor": "Sensor die de buitentemperatuur meet.",
-          "weather_entity": "Wordt gebruikt voor windchill- en zoncorrectie.",
-          "price_sensor": "EPEX Spot, Tibber of vergelijkbaar; wordt gebruikt voor prijscorrectie.",
-          "setpoint_entity": "Optioneel: input_number als extra brug naar ESPHome. Leeg laten als ESPHome rechtstreeks sensor.weheat_opentherm_aanvoersetpoint leest.",
-          "heatpump_status_sensor": "Bv. sensor.<warmtepomp>_heat_pump uit de WeHeat-integratie. Toont 'Verwarming'/'Koelen'/'Stand-by' op de climate-tegel."
+          "room_temp_sensor": "Temperatuur in de ruimte die de verwarming het meest bepaalt, meestal de woonkamer. Niet bij een raam, kachel of in de zon. Gebruik dezelfde sensor in de ESPHome-bridge.",
+          "outdoor_temp_sensor": "Liefst een stabiele bron: een eigen sensor in de schaduw, of de temperatuur van de weer-entiteit via een template. Niet de buitenvoeler van de WeHeat, want die schommelt als de compressor draait. Is de sensor onbeschikbaar, dan rekent de integratie niet en houdt de ESP het laatste setpoint vast.",
+          "weather_entity": "Voor wind- en zoncorrectie. Moet een uurvoorspelling hebben, zoals Met.no (standaard in HA), OpenWeatherMap of KNMI; Buienradar heeft alleen een dagvoorspelling. Is Forecast.Solar ingesteld, dan komt de zon daaruit.",
+          "price_sensor": "Dynamische stroomprijs met de komende prijzen in een attribuut. Getest met Zonneplan; Nordpool en ENTSO-e zouden moeten werken. Zonder prijslijst blijft de prijscorrectie 0.",
+          "setpoint_entity": "Meestal leeg laten: de ESPHome-bridge leest de aanvoersetpoint-sensor van deze integratie. Alleen invullen als je het setpoint ook in een input_number wilt hebben.",
+          "heatpump_status_sensor": "De status-sensor uit de WeHeat-integratie, bv. sensor.<warmtepomp>_heat_pump. Hiermee leert de stooklijn niet van zon of tapwater, en toont de thermostaat of de pomp verwarmt."
         }
       }
     },
     "error": {
-      "unknown": "Onverwachte fout opgetreden."
+      "unknown": "Onverwachte fout opgetreden.",
+      "no_hourly_forecast": "Deze weer-entiteit heeft geen uurvoorspelling. Kies bv. Met.no of laat het veld leeg."
     },
     "abort": {
       "already_configured": "WeHeat OpenTherm is al geconfigureerd."
@@ -53,7 +54,7 @@
       },
       "curve": {
         "title": "Stooklijn configureren",
-        "description": "Definieer 5 (buitentemperatuur → aanvoertemperatuur) koppels. De punten worden automatisch gesorteerd op buitentemperatuur.",
+        "description": "Definieer 5 (buitentemperatuur → aanvoertemperatuur) koppels. De punten worden automatisch gesorteerd op buitentemperatuur. Ter indicatie bij vloerverwarming: ongeveer 33 °C bij −10 °C buiten en 21 °C bij 15 °C. Wordt het te warm of te koud, schuif dan alle punten op; de adaptieve stooklijn doet daarna de fijnafstemming.",
         "data": {
           "p1_outdoor": "Punt 1 – buitentemperatuur",
           "p1_flow": "Punt 1 – aanvoertemperatuur",
@@ -74,7 +75,7 @@
           "heatpump_status_sensor": "Warmtepomp status-sensor"
         },
         "data_description": {
-          "heatpump_status_sensor": "Bv. sensor.<warmtepomp>_heat_pump uit de WeHeat-integratie — toont actueel verwarmen/koelen/stand-by op de climate-tegel via hvac_action. Leeg laten om niets te koppelen."
+          "heatpump_status_sensor": "De status-sensor uit de WeHeat-integratie, bv. sensor.<warmtepomp>_heat_pump. Aanbevolen: hiermee leert de stooklijn niet van zon of tapwater, en toont de thermostaat of de pomp verwarmt. Leeg laten om niets te koppelen."
         }
       },
       "advanced": {
@@ -97,37 +98,87 @@
   },
   "entity": {
     "sensor": {
-      "outdoor_temp": { "name": "Buitentemperatuur" },
-      "room_temp": { "name": "Kamertemperatuur" },
-      "t_stooklijn": { "name": "Stooklijn basistemperatuur" },
-      "t_definitief": { "name": "Aanvoersetpoint" },
-      "t_kamer_comp": { "name": "Kamercompensatie" },
-      "t_windchill": { "name": "Windchill correctie" },
-      "t_zon": { "name": "Zoncorrectie" },
-      "t_prijs": { "name": "Prijscorrectie" },
-      "current_price": { "name": "Huidige energieprijs" },
-      "curve_offset_1": { "name": "Stooklijn offset 1 (koudste punt)" },
-      "curve_offset_2": { "name": "Stooklijn offset 2" },
-      "curve_offset_3": { "name": "Stooklijn offset 3" },
-      "curve_offset_4": { "name": "Stooklijn offset 4" },
-      "curve_offset_5": { "name": "Stooklijn offset 5 (warmste punt)" },
-      "actieve_modus": { "name": "Actieve modus" }
+      "outdoor_temp": {
+        "name": "Buitentemperatuur"
+      },
+      "room_temp": {
+        "name": "Kamertemperatuur"
+      },
+      "t_stooklijn": {
+        "name": "Stooklijn basistemperatuur"
+      },
+      "t_definitief": {
+        "name": "Aanvoersetpoint"
+      },
+      "t_kamer_comp": {
+        "name": "Kamercompensatie"
+      },
+      "t_windchill": {
+        "name": "Windchill correctie"
+      },
+      "t_zon": {
+        "name": "Zoncorrectie"
+      },
+      "t_prijs": {
+        "name": "Prijscorrectie"
+      },
+      "current_price": {
+        "name": "Huidige energieprijs"
+      },
+      "curve_offset_1": {
+        "name": "Stooklijn offset 1 (koudste punt)"
+      },
+      "curve_offset_2": {
+        "name": "Stooklijn offset 2"
+      },
+      "curve_offset_3": {
+        "name": "Stooklijn offset 3"
+      },
+      "curve_offset_4": {
+        "name": "Stooklijn offset 4"
+      },
+      "curve_offset_5": {
+        "name": "Stooklijn offset 5 (warmste punt)"
+      },
+      "actieve_modus": {
+        "name": "Actieve modus"
+      }
     },
     "number": {
-      "compensation_factor": { "name": "Kamercompensatiefactor" },
-      "t_min": { "name": "Minimale aanvoertemperatuur" },
-      "t_max": { "name": "Maximale aanvoertemperatuur" },
-      "forecast_hours": { "name": "Vooruitkijkvenster" },
-      "max_price_correction": { "name": "Max prijscorrectie" },
-      "learning_rate": { "name": "Leersnelheid (0 = uit)" },
-      "stookgrens": { "name": "Stookgrens (boven = niet verwarmen)" },
-      "stookgrens_hysterese": { "name": "Stookgrens-hysterese (weer aan onder grens − dit)" }
+      "compensation_factor": {
+        "name": "Kamercompensatiefactor"
+      },
+      "t_min": {
+        "name": "Minimale aanvoertemperatuur"
+      },
+      "t_max": {
+        "name": "Maximale aanvoertemperatuur"
+      },
+      "forecast_hours": {
+        "name": "Vooruitkijkvenster"
+      },
+      "max_price_correction": {
+        "name": "Max prijscorrectie"
+      },
+      "learning_rate": {
+        "name": "Leersnelheid (0 = uit)"
+      },
+      "stookgrens": {
+        "name": "Stookgrens (boven = niet verwarmen)"
+      },
+      "stookgrens_hysterese": {
+        "name": "Stookgrens-hysterese (weer aan onder grens − dit)"
+      }
     },
     "climate": {
-      "thermostat": { "name": "Verwarmingsdoelwit" }
+      "thermostat": {
+        "name": "Verwarmingsdoelwit"
+      }
     },
     "button": {
-      "reset_learning": { "name": "Reset adaptieve stooklijn" }
+      "reset_learning": {
+        "name": "Reset adaptieve stooklijn"
+      }
     }
   }
 }
