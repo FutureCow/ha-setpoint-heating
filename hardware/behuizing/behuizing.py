@@ -101,9 +101,12 @@ def slot_x(x0, length, yc, zc, wy, hz, r):
     return s
 
 
-def wedge_y(x, y_face, z_low, length, depth, height, inward):
-    """Klikneus: driehoek in yz-vlak, `inward` = +1/-1 richting de print, over lengte in x."""
+def wedge_y(x, y_face, z_low, length, depth, height, inward, straight=0.6):
+    """Klikneus in het yz-vlak, `inward` = +1/-1 richting de print, over lengte in x.
+    Eerst `straight` mm recht (vasthouden), daarna schuin aflopend (inklikken).
+    Minstens 0,8 diep, anders print een 0,4-nozzle het neusje niet."""
     p = [V(x, y_face, z_low), V(x, y_face + inward * depth, z_low),
+         V(x, y_face + inward * depth, z_low + straight),
          V(x, y_face, z_low + height), V(x, y_face, z_low)]
     return Part.Face(Part.makePolygon(p)).extrude(V(length, 0, 0))
 
@@ -168,11 +171,11 @@ def make_box():
     top = AD_ZB + AD_T
     # haak aan de OT-kant (y groot) en aan de andere kant (y klein)
     y_face_hi = AD_Y + 0.2
-    s = s.fuse(box(hx0, y_face_hi, 0, hook_l, 1.2, top + 1.2))
-    s = s.fuse(wedge_y(hx0, y_face_hi, top + 0.05, hook_l, 0.6, 1.1, -1))
+    s = s.fuse(box(hx0, y_face_hi, 0, hook_l, 1.2, top + 1.7))
+    s = s.fuse(wedge_y(hx0, y_face_hi, top + 0.05, hook_l, 0.8, 1.6, -1))
     y_face_lo = AD_Y - AD_W - 0.2
-    s = s.fuse(box(hx0, y_face_lo - 1.2, 0, hook_l, 1.2, top + 1.2))
-    s = s.fuse(wedge_y(hx0, y_face_lo, top + 0.05, hook_l, 0.6, 1.1, +1))
+    s = s.fuse(box(hx0, y_face_lo - 1.2, 0, hook_l, 1.2, top + 1.7))
+    s = s.fuse(wedge_y(hx0, y_face_lo, top + 0.05, hook_l, 0.8, 1.6, +1))
 
     return s.removeSplitter()
 
