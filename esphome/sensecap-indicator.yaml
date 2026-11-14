@@ -17,10 +17,14 @@ substitutions:
   # Engels: climate.weheat_opentherm_heating_target.
   thermostat_entity: "climate.weheat_opentherm_verwarmingsdoelwit"
 
-  # Wat de ESPHome-bridge naar de warmtepomp stuurt: de sensor
-  # "Aanvoersetpoint (naar boiler)" van de bridge. Met de bridge-YAML uit deze
-  # repo (friendly_name "WeHeat OpenTherm") heet die zo. Heb je de bridge een
-  # andere naam gegeven, dan verandert het begin van de entity-ID mee.
+  # Aanvoersetpoint linksboven. Dit is de sensor "Aanvoersetpoint (naar boiler)"
+  # van de ESPHome-bridge: wat de ESP werkelijk naar de warmtepomp stuurt.
+  # Niet te verwarren met sensor.weheat_opentherm_aanvoersetpoint, het berekende
+  # setpoint van de integratie. Normaal zijn ze gelijk; valt de bridge uit, dan
+  # zie je dat hier. Wil je liever de berekende waarde, vul dan die sensor in.
+  # ESPHome maakt de entity-ID uit apparaatnaam + sensornaam. Met de bridge-YAML
+  # uit deze repo (friendly_name "WeHeat OpenTherm") wordt het de naam hieronder;
+  # heb je de bridge anders genoemd, dan verandert het begin mee.
   setpoint_sent_entity: "sensor.weheat_opentherm_aanvoersetpoint_naar_boiler"
 
   # Status van de warmtepomp uit de officiële WeHeat-integratie. De naam hangt
