@@ -167,7 +167,7 @@ target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 
 ### Stap 5 — SenseCAP Indicator (optioneel)
 
-Met een SenseCAP Indicator D1 van Seeed Studio heb je een wandscherm voor de thermostaat. Het toont de kamertemperatuur, het doel, het aanvoersetpoint dat naar de warmtepomp gaat en de buitentemperatuur. Met − en + verander je het doel in stappen van 0,5 °C. De boog kleurt naar de status van de warmtepomp: oranje bij verwarmen, wit bij ontdooien, blauw bij koelen en grijs bij stilstand.
+Met een SenseCAP Indicator D1 van Seeed Studio heb je een wandscherm voor de thermostaat. Het toont de kamertemperatuur, het doel, het aanvoersetpoint dat naar de warmtepomp gaat en de buitentemperatuur. Met − en + verander je het doel in stappen van 0,5 °C. De boog kleurt naar de status van de warmtepomp: oranje bij `heating`, wit bij `defrosting` (ontdooien, bewust niet blauw zodat het niet op koelen lijkt), blauw bij `cooling` en grijs bij elke andere status.
 
 Gebruik de [meegeleverde YAML](esphome/sensecap-indicator.yaml) en vul bovenin bij `substitutions` in:
 
@@ -323,7 +323,11 @@ Koppel de status-sensor (**`sensor.<warmtepomp>_heat_pump`** uit de officiële W
 | Verwarming | 🔥 Verwarmen |
 | Koelen | ❄️ Koelen |
 | Stand-by | 💤 Inactief |
+| Ontdooien (`defrosting`) | 💤 Inactief (⏻ Uit bij mode Uit) |
+| Tapwater (`dhw`, `legionella_prevention`) | 💤 Inactief (⏻ Uit bij mode Uit) |
 | Mode = Uit + pomp Stand-by | ⏻ Uit |
+
+Bij het leren wordt tijdens ontdooien gewoon gemeten, want het hoort bij normaal stoken in de winter. Alleen een te warme kamer telt dan niet mee, net als bij stand-by: de pomp verwarmt op dat moment niet. Tijdens tapwater wordt niets gemeten.
 
 Actief verwarmen/koelen wint altijd van de mode-keuze — je ziet dus ook wanneer de warmtepomp zelf besluit te koelen ondanks `climate=HEAT/OFF`.
 
