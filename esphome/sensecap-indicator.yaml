@@ -1,7 +1,7 @@
 # ============================================================
 #  SenseCAP Indicator D1 — Thermostaat voor de OpenTherm-setpoint-integratie
 #  ESPHome 2026.x  |  mipi_rgb platform  |  LVGL v9
-#  v2.0 — 2026-11-14 (algemene versie, reistijden weg, groter scherm)
+#  v2.1 — 2026-11-14 (stip midden op de boog, gelijke − en +, temperatuur lager)
 #
 #  Optioneel: een wandscherm dat de kamertemperatuur, het doel en het
 #  aanvoersetpoint toont, en waarmee je het doel met − en + verandert.
@@ -228,8 +228,9 @@ sensor:
           if (ratio > 1.0f) ratio = 1.0f;
           float angle_deg = 135.0f + ratio * 270.0f;
           float angle_rad = angle_deg * 3.14159265f / 180.0f;
-          // Middelpunt van de boog (40+200, 30+200) = (240, 230), straal 200
-          int cx = 240, cy = 230, r = 200;
+          // Middelpunt van de boog (40+200, 30+200) = (240, 230). Straal 187:
+          // het midden van de boogrand (buitenstraal 200 − halve breedte 13).
+          int cx = 240, cy = 230, r = 187;
           int dx = cx + (int)(r * cosf(angle_rad));
           int dy = cy + (int)(r * sinf(angle_rad));
           // Stip is 16×16, dus midden op dx,dy
@@ -356,7 +357,7 @@ lvgl:
         - label:
             id: lbl_thermo_current
             x: 40
-            y: 124
+            y: 138
             width: 400
             text: "--°"
             text_font: roboto_112
@@ -365,7 +366,7 @@ lvgl:
 
         - label:
             x: 40
-            y: 260
+            y: 258
             width: 400
             text: "huidig"
             text_font: montserrat_16
@@ -406,7 +407,7 @@ lvgl:
             widgets:
               - label:
                   align: CENTER
-                  text: "-"
+                  text: ""   # LV_SYMBOL_MINUS, even groot als de plus
                   text_font: montserrat_42
                   text_color: 0xff7043
 
@@ -432,6 +433,6 @@ lvgl:
             widgets:
               - label:
                   align: CENTER
-                  text: "+"
+                  text: ""   # LV_SYMBOL_PLUS
                   text_font: montserrat_42
                   text_color: 0xff7043
