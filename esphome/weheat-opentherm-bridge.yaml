@@ -133,8 +133,8 @@ sensor:
   # een afrondingsgrens niet heen en weer springt.
   # delta 0.05 in plaats van 0.1: na afronden kan een stap van 0,1 door
   # floating point net onder 0,1 uitkomen en dan tegengehouden worden.
-  # Branderstarts, branderuren en CV-pompuren zijn weggelaten: de Flint P40
-  # geeft daar altijd 0 en ze kosten alleen tijd op de OpenTherm-bus.
+  # CV-druk, branderstarts, branderuren en CV-pompuren zijn weggelaten: de
+  # Flint P40 geeft daar altijd 0 en ze kosten alleen tijd op de OpenTherm-bus.
   - platform: opentherm
     rel_mod_level:
       name: "Modulatieniveau"
@@ -151,13 +151,6 @@ sensor:
     t_ret:
       name: "Retourtemperatuur"
       unit_of_measurement: "°C"
-      filters:
-        - throttle_average: 30s
-        - round: 1
-        - delta: 0.05
-    ch_pressure:
-      name: "CV-druk"
-      unit_of_measurement: "bar"
       filters:
         - throttle_average: 30s
         - round: 1
