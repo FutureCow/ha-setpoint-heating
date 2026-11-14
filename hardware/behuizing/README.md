@@ -12,6 +12,20 @@ Buitenmaat 66 × 59,5 × 39,5 mm (met deksel).
 | `behuizing.step` | bak + deksel in montagestand, voor CAD |
 | `behuizing.py` | het parametrische model (FreeCAD) |
 
+## Twee versies
+
+| | Naast elkaar | Onder elkaar (gestapeld) |
+|---|---|---|
+| Buitenmaat | 66 × 59,5 × 39,5 mm | 66 × 33,5 × 43 mm |
+| Bestanden | `bak.stl`, `deksel.stl`, `behuizing.step`, `behuizing.py` | `bak-gestapeld.stl`, `deksel-gestapeld.stl`, `behuizing-gestapeld.step`, `behuizing_gestapeld.py` |
+| DevKit-stekkers | op alle pinnen | alleen op de 3V3-pinrij (3V3, G, GPIO10, GPIO11) |
+| OT-kabel | kopse wand aan de antennekant | lange voorwand, naast de adapter |
+
+De gestapelde versie zet de adapter onderin (pinnen omhoog, aan de USB-kant) en de DevKit erboven op 26 mm.
+Daartussen zitten de rechte dupont-stekkers van de adapter (16,5 mm) plus 5,4 mm om de draadjes te buigen.
+Eerst de adapter plaatsen en aansluiten, dan de DevKit erop. Met haakse pinheaders of gesoldeerde draadjes
+kan `WIRE_BEND`/`DUPONT_UP` omlaag en wordt het doosje 12–15 mm lager.
+
 ## Printen
 - PLA of PETG, 0,2 mm laag, 3 wanden, geen support nodig (de USB-openingen hebben ronde hoeken
   en de tunnel van de trekontlasting is 2 mm hoog).
