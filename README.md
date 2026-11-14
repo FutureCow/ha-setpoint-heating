@@ -20,6 +20,8 @@ De berekening combineert klassieke stooklijn-regeling met kamercompensatie, weer
 - [Aanpasbare parameters](#aanpasbare-parameters)
 - [Adaptieve stooklijn](#adaptieve-stooklijn)
 - [Entiteiten](#entiteiten)
+- [Stookgrens (zomerstop)](#stookgrens-zomerstop)
+- [Koelen en de status-sensor](#koelen)
 - [Tips & FAQ](#tips--faq)
 - [Licentie](#licentie)
 
@@ -86,16 +88,18 @@ T = clamp(T, T_min, T_max)
 
    **Stap 1 — Sensoren**
 
-   | Veld | Verplicht | Voorbeeld |
+   | Veld | Verplicht | Wat kies je |
    |---|---|---|
-   | Kamertemperatuursensor | ✅ | `sensor.woonkamer_temperatuur` |
-   | Buitentemperatuursensor | ✅ | `sensor.knmi_temperatuur` of template-sensor (zie [tips](#beter-buitentemperatuur-gebruiken)) |
-   | Weer-entiteit | optioneel | `weather.forecast_home` (Met.no). Moet een uurvoorspelling hebben; Buienradar heeft die niet |
-   | Energieprijssensor | optioneel | `sensor.zonneplan_current_electricity_tariff` |
-   | Setpoint input_number | optioneel | leeg laten — ESPHome leest direct van integratiesensor |
-   | Warmtepomp status-sensor | aanbevolen | `sensor.<warmtepomp>_heat_pump` uit de WeHeat-integratie; nodig om niet te leren van zon en tapwater |
+   | Kamertemperatuursensor | ✅ | De ruimte die de verwarming het meest bepaalt, meestal de woonkamer. Niet bij een raam, kachel of in de zon. Gebruik dezelfde sensor in de ESPHome-bridge |
+   | Buitentemperatuursensor | ✅ | Een stabiele bron: een eigen sensor in de schaduw of een template op de weer-entiteit (zie [tips](#beter-buitentemperatuur-gebruiken)). Niet de buitenvoeler van de WeHeat |
+   | Weer-entiteit | optioneel | Voor wind- en zoncorrectie, bv. `weather.forecast_home` (Met.no). Moet een uurvoorspelling hebben; de wizard weigert een entiteit zonder, zoals Buienradar |
+   | Energieprijssensor | optioneel | Zonneplan, Frank Energie, Tibber, Nordpool of ENTSO-e (zie [prijssensoren](#welke-prijssensoren-werken)) |
+   | Setpoint input_number | optioneel | Leeg laten — ESPHome leest direct de sensor van de integratie |
+   | Warmtepomp status-sensor | aanbevolen | `sensor.<warmtepomp>_heat_pump` uit de WeHeat-integratie. Nodig om niet te leren van zon en tapwater |
 
-4. **Doorloop de 4 options-stappen** voor temperatuurinstellingen, stooklijn en geavanceerde correcties (kun je later altijd aanpassen via CONFIGUREREN op de integratie).
+   De sensoren kun je na het instellen niet meer wijzigen, behalve de status-sensor. Wil je een andere sensor, verwijder de integratie dan en voeg haar opnieuw toe.
+
+4. Open daarna **Configureren** op de integratie en doorloop de 4 stappen: temperatuurinstellingen, stooklijn, geavanceerde correcties en extra sensoren. Stel vooral de **stooklijn** in: de standaardlijn is een schatting. Ter indicatie bij vloerverwarming: ongeveer 33 °C aanvoer bij −10 °C buiten en 21 °C bij 15 °C. Wordt het te warm of te koud, schuif dan alle punten op; de adaptieve stooklijn doet daarna de fijnafstemming.
 
 ### Stap 3 — ESPHome flashen
 
@@ -150,7 +154,7 @@ target_temp_entity: climate.weheat_opentherm_verwarmingsdoelwit
 |---|---|---|
 | **Stooklijn** | `heating_curve.py` | 5 instelbare (buitentemp → aanvoertemp) punten met lineaire interpolatie + kamercompensatie (±5°C) |
 | **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; alleen het verschil boven dat bij 10 km/h telt, want de stooklijn bevat gewone wind al; tussen 10 en 13°C lineair afgebouwd; de helft daarvan telt als kouder buiten, via de helling van de ingestelde stooklijn zonder geleerde offsets omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster. Zon bij voorkeur uit **Forecast.Solar** (automatisch, zie hieronder), anders uit het weertype (alleen uren met de zon > 5° boven de horizon) |
-| **Prijs** | `energy_prices.py` | μ/σ-analyse op de prijzen van de komende 24 uur; goedkoop → voorverwarmen, duur → bezuinigen (±max correctie). Eén indeling per prijsperiode: een ververste prijslijst halverwege het uur verandert de indeling niet |
+| **Prijs** | `energy_prices.py` | Vergelijkt de huidige prijs met de komende 24 uur. Meer dan een halve standaardafwijking onder het gemiddelde is goedkoop → voorverwarmen (standaard +2 °C, alleen als de kamer minder dan 1,5 °C boven het doel zit); meer dan een halve erboven is duur → bezuinigen (standaard −2 °C). Eén indeling per prijsperiode: een ververste prijslijst halverwege het uur verandert de indeling niet |
 
 ### Zoncorrectie via Forecast.Solar (optioneel, automatisch)
 
@@ -200,10 +204,12 @@ De integratie leert over weken automatisch je 5 stooklijn-punten bij te slijpen 
 **Werking in het kort:**
 - Elke 60s: bij stabiele omstandigheden bewaar `(target − kamer)` per buitentemp-bucket
 - Elk uur: per curve-punt bij persistente afwijking >0.3°C → offset met `learning_rate` aanpassen
-- Offsets begrensd op ±5°C, oude data vervalt na 7 dagen
+- Offsets begrensd op ±5°C. Oude metingen doven uit: elk uur tellen ze nog half mee
+- Te warm terwijl de warmtepomp niet verwarmt telt niet mee: dat komt door zon of weer, niet door de stooklijn
 - Auto-reset bij handmatige curve-wijziging (buiten- of aanvoerwaarde)
 - Niet leren als het setpoint al op de minimale of maximale aanvoertemperatuur staat
 - Niet leren terwijl de warmtepomp tapwater maakt (`dhw` of `legionella_prevention`, alleen met gekoppelde status-sensor)
+- Niet leren zolang een temperatuursensor is weggevallen (zie [sensoruitval](#wat-als-een-temperatuursensor-wegvalt))
 
 **Stabiliteitseisen** (voorkomt leren van verkeerde signalen):
 - Geen doeltemperatuur-wijziging in laatste 60 min
@@ -239,10 +245,21 @@ Onder device "WeHeat OpenTherm" verschijnen automatisch:
 | `sensor.…_prijscorrectie` | Correctie (±max) | diagnostic |
 | `sensor.…_huidige_energieprijs` | Actuele prijs | diagnostic |
 | `sensor.…_stooklijn_offset_1..5` | Adaptieve offsets per curve-punt | diagnostic |
+| `sensor.…_actieve_modus` | `heat` of `off`, na de stookgrens; de ESP schakelt hierop | normaal |
+
+De aanvoersetpoint-sensor heeft attributen die laten zien hoe het setpoint is opgebouwd:
+
+| Attribuut | Wat |
+|---|---|
+| `formule` | De hele som in één regel, bv. `25.04 (stooklijn) -0.24 (kamer) +0.01 (windchill) -0.00 (zon) 0.00 (prijs) = 24.81 ≈ 24.8` |
+| `zon_bron` | `forecast.solar`, `weer` of `gemengd` |
+| `begrensd` | `true` als het setpoint op de minimale of maximale aanvoertemperatuur is afgekapt |
+| `terugval` | Tekst als een temperatuursensor is weggevallen, anders leeg |
+| `geleerde_offset_totaal` | Som van de vijf geleerde offsets |
 
 ### Bediening
 - `climate.…_verwarmingsdoelwit` — doeltemperatuur
-- `number.…_kamercompensatiefactor`, `_minimale_aanvoertemperatuur`, `_maximale_aanvoertemperatuur`, `_vooruitkijkvenster`, `_max_prijscorrectie`, `_leersnelheid` — instelbare parameters
+- `number.…_kamercompensatiefactor`, `_minimale_aanvoertemperatuur`, `_maximale_aanvoertemperatuur`, `_vooruitkijkvenster`, `_max_prijscorrectie`, `_leersnelheid`, `_stookgrens`, `_stookgrens_hysterese` — instelbare parameters
 - `button.…_reset_adaptieve_stooklijn` — wis leerstaat
 
 ## Stookgrens (zomerstop)
@@ -260,8 +277,11 @@ Voorbeeld: kamer 21°C, buiten 20°C, climate=HEAT, stookgrens=17 → 20 ≥ 17 
 
 **Niet aangestuurd** door deze integratie — de WeHeat regelt koeling intern via een eigen koelstooklijn (geen OpenTherm-pad). Zet de koelmodus aan/uit via de WeHeat-app of de fysieke knop. De climate-entiteit heeft daarom alleen **Verwarmen** en **Uit**.
 
-### Maar wel zichtbaar maken
-Sinds v2.1 kun je de status-sensor van de warmtepomp (**`sensor.<warmtepomp>_heat_pump`** uit de officiële WeHeat-integratie) koppelen via *Configureren → Extra sensoren → Warmtepomp status-sensor*. De climate-tegel toont dan via `hvac_action`:
+### De status-sensor van de warmtepomp
+Koppel de status-sensor (**`sensor.<warmtepomp>_heat_pump`** uit de officiële WeHeat-integratie) bij het instellen of via *Configureren → Extra sensoren*. Die doet twee dingen:
+
+- **Beter leren:** te warm terwijl de pomp niet verwarmt telt niet mee, en tijdens tapwater wordt niets gemeten.
+- **Zichtbaar op de thermostaat:** de climate-tegel toont via `hvac_action` wat de pomp doet:
 
 | Pomp-status | Climate-tegel laat zien |
 |---|---|
@@ -273,6 +293,10 @@ Sinds v2.1 kun je de status-sensor van de warmtepomp (**`sensor.<warmtepomp>_hea
 Actief verwarmen/koelen wint altijd van de mode-keuze — je ziet dus ook wanneer de warmtepomp zelf besluit te koelen ondanks `climate=HEAT/OFF`.
 
 ## Tips & FAQ
+
+### Verwijderen
+
+Verwijder de integratie via **Instellingen → Apparaten & diensten**. De geleerde stooklijn wordt dan ook gewist. Zet de ESPHome-bridge uit of flash hem opnieuw: die houdt anders het laatste setpoint vast.
 
 ### Beter buitentemperatuur gebruiken
 
