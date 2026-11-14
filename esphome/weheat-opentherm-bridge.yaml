@@ -127,22 +127,40 @@ sensor:
       - filter_out: nan
 
   # OpenTherm boilersensoren
+  # Filters: OpenTherm geeft temperaturen in stappen van 1/256 °C. Zonder filter
+  # wordt elke minieme schommeling een nieuwe state in de recorder (~25.000/dag).
+  # delta 0.05 in plaats van 0.1: na afronden kan een stap van 0,1 door
+  # floating point net onder 0,1 uitkomen en dan tegengehouden worden.
   - platform: opentherm
     rel_mod_level:
       name: "Modulatieniveau"
       unit_of_measurement: "%"
+      filters:
+        - delta: 1
     t_boiler:
       name: "Aanvoertemperatuur (gemeten)"
       unit_of_measurement: "°C"
+      filters:
+        - round: 1
+        - delta: 0.05
     t_ret:
       name: "Retourtemperatuur"
       unit_of_measurement: "°C"
+      filters:
+        - round: 1
+        - delta: 0.05
     ch_pressure:
       name: "CV-druk"
       unit_of_measurement: "bar"
+      filters:
+        - round: 1
+        - delta: 0.05
     t_outside:
       name: "Buitentemperatuur (WeHeat)"
       unit_of_measurement: "°C"
+      filters:
+        - round: 1
+        - delta: 0.05
     burner_starts:
       name: "Branderstarts"
     burner_operation_hours:
