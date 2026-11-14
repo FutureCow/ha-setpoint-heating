@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,6 +37,12 @@ _PRICE_ATTR_KEYS = (
 _ITEM_VALUE_KEYS = ("value", "price", "total", "electricity_price")
 _ITEM_TIME_KEYS = ("datetime", "start", "start_time", "start_date", "from", "time")
 
+# Tibber (core) zet geen prijslijst in de sensor; die komt uit de actie
+# tibber.get_prices. Resultaat per sensor bewaard: (opgehaald, prijzen).
+_TIBBER_DOMAIN = "tibber"
+_TIBBER_CACHE_TTL = timedelta(minutes=15)
+_tibber_cache: dict[str, tuple[datetime, list[tuple[datetime | None, float]]]] = {}
+
 
 def _item_time(item: dict[str, Any]) -> datetime | None:
     """Begintijd (UTC) van een prijsitem, als de integratie die meegeeft."""
@@ -52,7 +59,7 @@ def _extract_prices(attributes: dict[str, Any]) -> list[tuple[datetime | None, f
     """Lees een lijst (begintijd, prijs) uit de sensor-attributen.
 
     Ondersteunt zowel lijsten van floats (zonder tijd) als lijsten van dicts
-    met een prijssleutel (bijv. Nordpool, ENTSO-e, Zonneplan).
+    met een prijssleutel (bijv. Nordpool, ENTSO-e, Frank Energie, Zonneplan).
     """
     for key in _PRICE_ATTR_KEYS:
         val = attributes.get(key)
@@ -81,6 +88,45 @@ def _extract_prices(attributes: dict[str, Any]) -> list[tuple[datetime | None, f
         if prices:
             return prices
     return []
+
+
+async def _async_tibber_prices(
+    hass: HomeAssistant, price_sensor: str, nickname: str | None
+) -> list[tuple[datetime | None, float]]:
+    """Prijzen van de komende 24 uur via tibber.get_prices (leeg bij geen Tibber)."""
+    entity = er.async_get(hass).async_get(price_sensor)
+    if entity is None or entity.platform != _TIBBER_DOMAIN:
+        return []
+    if not hass.services.has_service(_TIBBER_DOMAIN, "get_prices"):
+        return []
+
+    now = dt_util.utcnow()
+    cached = _tibber_cache.get(price_sensor)
+    if cached and now - cached[0] < _TIBBER_CACHE_TTL:
+        return cached[1]
+
+    start = dt_util.as_local(now).replace(minute=0, second=0, microsecond=0)
+    try:
+        response = await hass.services.async_call(
+            _TIBBER_DOMAIN,
+            "get_prices",
+            {
+                "start": start.isoformat(),
+                "end": (start + _LOOKAHEAD).isoformat(),
+            },
+            blocking=True,
+            return_response=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning("Kan Tibber-prijzen niet ophalen: %s", exc)
+        return cached[1] if cached else []
+
+    homes = (response or {}).get("prices") or {}
+    # Meerdere huizen: neem het huis van deze sensor, anders het eerste.
+    items = homes.get(nickname) if nickname in homes else next(iter(homes.values()), [])
+    entries = _extract_prices({"forecast": items or []})
+    _tibber_cache[price_sensor] = (now, entries)
+    return entries
 
 
 def _upcoming(
@@ -203,6 +249,10 @@ async def async_get_price_data(
         return 0.0, []
 
     entries = _extract_prices(state.attributes)
+    if not entries:
+        entries = await _async_tibber_prices(
+            hass, price_sensor, state.attributes.get("app_nickname")
+        )
     if not entries:
         return current_price, [current_price]
 

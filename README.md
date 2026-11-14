@@ -63,7 +63,7 @@ T = clamp(T, T_min, T_max)
 - WeHeat-warmtepomp met OpenTherm-aansluiting. Gebouwd en getest met een Flint P40; andere WeHeat-modellen met OpenTherm zouden op dezelfde manier moeten werken, maar zijn niet getest
 - ESP32-C6 (of een ander OpenTherm-compatibel ESP) met DIYLESS / Ihormelnyk OpenTherm shield
 - Een weer-entiteit met uurvoorspelling (Met.no, OpenWeatherMap, KNMI; niet Buienradar) — optioneel maar aanbevolen
-- Een dynamische energieprijssensor met de komende prijzen in een attribuut (zie [prijssensoren](#welke-prijssensoren-werken)) — optioneel
+- Een dynamische energieprijssensor: Zonneplan, Frank Energie, Tibber, Nordpool, ENTSO-e of een andere met de komende prijzen in een attribuut (zie [prijssensoren](#welke-prijssensoren-werken)) — optioneel
 - HACS geïnstalleerd
 
 ## Installatie
@@ -295,7 +295,10 @@ Gebruik deze als `outdoor_temp_sensor` in de integratie-setup. Gebruik geen `flo
 De integratie leest de komende prijzen uit een attribuut van de prijssensor. Dat attribuut moet een lijst zijn, met getallen of met items als `{start/time/from: tijd, value/price/total/electricity_price: prijs}`. Gezocht wordt in `forecast`, `prices`, `prices_today` (+ `prices_tomorrow`), `hourly_prices` en `raw_today` (+ `raw_tomorrow`).
 
 - **Zonneplan**: getest (`forecast` → `electricity_price`). Zonneplan slaat de lijst op als integer × 1e7; de integratie herkent dat schaalverschil zelf.
-- **Nordpool** (HACS, `raw_today`/`raw_tomorrow`) en **ENTSO-e** (`prices`) volgen dit formaat, maar zijn niet getest.
+- **Frank Energie** (HACS): kies de sensor met de huidige all-in prijs; die heeft attribuut `prices` (`from`/`price`).
+- **Tibber** (standaard in HA): de sensor heeft geen prijslijst; de integratie haalt de komende 24 uur op via de actie `tibber.get_prices` (hooguit eens per 15 minuten).
+- **Nordpool** (HACS, `raw_today`/`raw_tomorrow`) en **ENTSO-e** (`prices`) volgen dit formaat.
+- Frank, Tibber, Nordpool en ENTSO-e zijn nagebootst op basis van hun broncode, niet getest met een echt account.
 - Heeft je sensor geen prijslijst in een attribuut, dan blijft de prijscorrectie 0. De rest werkt gewoon.
 
 Controleer het in het attribuut `prijs_correctie` van de aanvoersetpoint-sensor: bij een werkende koppeling wisselt het over de dag tussen −2, 0 en +2.

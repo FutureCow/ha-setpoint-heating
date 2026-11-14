@@ -16,7 +16,7 @@
           "room_temp_sensor": "Temperatuur in de ruimte die de verwarming het meest bepaalt, meestal de woonkamer. Niet bij een raam, kachel of in de zon. Gebruik dezelfde sensor in de ESPHome-bridge.",
           "outdoor_temp_sensor": "Liefst een stabiele bron: een eigen sensor in de schaduw, of de temperatuur van de weer-entiteit via een template. Niet de buitenvoeler van de WeHeat, want die schommelt als de compressor draait. Is de sensor onbeschikbaar, dan rekent de integratie niet en houdt de ESP het laatste setpoint vast.",
           "weather_entity": "Voor wind- en zoncorrectie. Moet een uurvoorspelling hebben, zoals Met.no (standaard in HA), OpenWeatherMap of KNMI; Buienradar heeft alleen een dagvoorspelling. Is Forecast.Solar ingesteld, dan komt de zon daaruit.",
-          "price_sensor": "Dynamische stroomprijs met de komende prijzen in een attribuut. Getest met Zonneplan; Nordpool en ENTSO-e zouden moeten werken. Zonder prijslijst blijft de prijscorrectie 0.",
+          "price_sensor": "Dynamische stroomprijs, bv. Zonneplan, Frank Energie (huidige all-in prijs), Tibber, Nordpool of ENTSO-e. Zonder prijslijst blijft de prijscorrectie 0.",
           "setpoint_entity": "Meestal leeg laten: de ESPHome-bridge leest de aanvoersetpoint-sensor van deze integratie. Alleen invullen als je het setpoint ook in een input_number wilt hebben.",
           "heatpump_status_sensor": "De status-sensor uit de WeHeat-integratie, bv. sensor.<warmtepomp>_heat_pump. Hiermee leert de stooklijn niet van zon of tapwater, en toont de thermostaat of de pomp verwarmt."
         }

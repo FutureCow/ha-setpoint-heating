@@ -16,7 +16,7 @@
           "room_temp_sensor": "Temperature of the room that matters most for heating, usually the living room. Not near a window, stove or in the sun. Use the same sensor in the ESPHome bridge.",
           "outdoor_temp_sensor": "Preferably a stable source: your own sensor in the shade, or the weather entity's temperature via a template. Not the WeHeat's own outdoor sensor, which fluctuates while the compressor runs. If this sensor is unavailable, the integration stops calculating and the ESP keeps the last setpoint.",
           "weather_entity": "For wind and sun corrections. Must provide an hourly forecast, such as Met.no (default in HA), OpenWeatherMap or KNMI; Buienradar only has a daily forecast. If Forecast.Solar is set up, the sun correction uses it.",
-          "price_sensor": "Dynamic electricity price with the upcoming prices in an attribute. Tested with Zonneplan; Nordpool and ENTSO-e should work. Without a price list the price correction stays 0.",
+          "price_sensor": "Dynamic electricity price, e.g. Zonneplan, Frank Energie (current all-in price), Tibber, Nordpool or ENTSO-e. Without a price list the price correction stays 0.",
           "setpoint_entity": "Usually leave empty: the ESPHome bridge reads this integration's supply setpoint sensor. Only fill in if you also want the setpoint in an input_number.",
           "heatpump_status_sensor": "The status sensor from the WeHeat integration, e.g. sensor.<heat pump>_heat_pump. With it the curve does not learn from sun or hot water, and the thermostat shows whether the pump is heating."
         }
