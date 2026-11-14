@@ -90,9 +90,11 @@ sensor:
     filters:
       - filter_out: nan
 
-  # Wat de ESP daadwerkelijk naar de OpenTherm-bus stuurt als t_set.
-  # Zou identiek moeten zijn aan stooklijn_setpoint; verschilt alleen als
-  # filter_out een NaN wegfiltert (dan blijft de laatste geldige waarde staan).
+  # De waarde die de ESP als t_set op de OpenTherm-bus gebruikt, elke 30 s
+  # teruggemeld aan HA. Dit is wat de ESP aanbiedt; of de warmtepomp het heeft
+  # overgenomen, zie je alleen aan de pomp zelf (bv. het waterdoel in de
+  # WeHeat-integratie). Gelijk aan het setpoint van de integratie, behalve als de
+  # verbinding met HA wegvalt: dan blijft hier de laatste geldige waarde staan.
   - platform: template
     name: "Aanvoersetpoint (naar boiler)"
     unit_of_measurement: "°C"

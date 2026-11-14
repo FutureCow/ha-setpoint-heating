@@ -18,10 +18,14 @@ substitutions:
   thermostat_entity: "climate.weheat_opentherm_verwarmingsdoelwit"
 
   # Aanvoersetpoint linksboven. Dit is de sensor "Aanvoersetpoint (naar boiler)"
-  # van de ESPHome-bridge: wat de ESP werkelijk naar de warmtepomp stuurt.
+  # van de ESPHome-bridge. De ESP vult die zelf, elke 30 s, met de waarde die hij
+  # van HA heeft ontvangen en als t_set op de OpenTherm-bus gebruikt. Het is dus
+  # wat de ESP aanbiedt, geen bevestiging dat de warmtepomp het heeft overgenomen.
   # Niet te verwarren met sensor.weheat_opentherm_aanvoersetpoint, het berekende
-  # setpoint van de integratie. Normaal zijn ze gelijk; valt de bridge uit, dan
-  # zie je dat hier. Wil je liever de berekende waarde, vul dan die sensor in.
+  # setpoint van de integratie. Normaal zijn ze gelijk. Valt de verbinding tussen
+  # HA en de ESP weg, dan blijft hier de laatste waarde staan; valt de ESP zelf
+  # uit, dan wordt hij unavailable. Wil je liever de berekende waarde, vul dan
+  # die sensor van de integratie in.
   # ESPHome maakt de entity-ID uit apparaatnaam + sensornaam. Met de bridge-YAML
   # uit deze repo (friendly_name "WeHeat OpenTherm") wordt het de naam hieronder;
   # heb je de bridge anders genoemd, dan verandert het begin mee.
