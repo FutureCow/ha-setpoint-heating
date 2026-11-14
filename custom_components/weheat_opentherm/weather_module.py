@@ -99,7 +99,7 @@ def _to_kmh(wind_speed: float, unit: str) -> float:
     return wind_speed * _KMH_PER_UNIT.get(unit, 1.0)
 
 
-def _to_celsius(temp: float, unit: str) -> float:
+def to_celsius(temp: float, unit: str) -> float:
     """Converteer temperatuur naar °C."""
     return (temp - 32.0) * 5.0 / 9.0 if unit == "°F" else temp
 
@@ -163,7 +163,7 @@ async def async_get_forecast_corrections(
         # Zonder temperatuur geen windchill: 0 °C invullen zou bij wind een
         # correctie geven die niets met het echte weer te maken heeft.
         if (raw_temp := entry.get("temperature")) is not None:
-            temp = _to_celsius(float(raw_temp), temp_unit)
+            temp = to_celsius(float(raw_temp), temp_unit)
             wind = _to_kmh(float(entry.get("wind_speed") or 0.0), wind_unit)
             windchill_values.append(_windchill_delta(temp, wind))
 

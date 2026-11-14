@@ -27,6 +27,7 @@ from .const import (
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
     KEY_EFFECTIVE_MODE,
+    KEY_FALLBACK,
     KEY_HVAC_MODE,
     KEY_OFFSETS,
     KEY_OUTDOOR_TEMP,
@@ -248,6 +249,7 @@ class WeheatSetpointSensor(WeheatSensor):
             return {
                 "modus": "uit",
                 "formule": "warmtepomp uit — geen setpoint",
+                "terugval": data.get(KEY_FALLBACK),
             }
 
         # HEAT: volledige opbouw met alle correcties
@@ -292,4 +294,5 @@ class WeheatSetpointSensor(WeheatSensor):
             "t_max": t_max,
             "begrensd": was_clamped,
             "geleerde_offset_totaal": learned_adjustment,
+            "terugval": data.get(KEY_FALLBACK),
         }

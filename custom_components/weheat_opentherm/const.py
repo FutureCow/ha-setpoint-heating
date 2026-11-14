@@ -80,6 +80,7 @@ KEY_OFFSETS = "curve_offsets"  # list[float] van 5 leer-offsets
 KEY_HVAC_MODE = "hvac_mode"             # door gebruiker gekozen
 KEY_EFFECTIVE_MODE = "effective_mode"   # daadwerkelijk actief (heat/off na stookgrens)
 KEY_HEATPUMP_STATUS = "heatpump_status" # rauwe state van de WeHeat status-sensor
+KEY_FALLBACK = "fallback"               # tekst als een sensor is weggevallen, anders None
 
 
 def device_info(entry_id: str) -> DeviceInfo:

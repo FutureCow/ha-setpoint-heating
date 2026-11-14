@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CHEAP_PREHEAT_DELTA,
@@ -51,6 +52,7 @@ from .const import (
     HVAC_MODE_OFF,
     KEY_CURRENT_PRICE,
     KEY_EFFECTIVE_MODE,
+    KEY_FALLBACK,
     KEY_HEATPUMP_STATUS,
     KEY_HVAC_MODE,
     KEY_OFFSETS,
@@ -75,10 +77,21 @@ from .heating_curve import (
     calculate_windchill_correction,
 )
 from .learning import LearningEngine
-from .weather_module import async_get_forecast_corrections
+from .weather_module import async_get_forecast_corrections, to_celsius
 
 _LOGGER = logging.getLogger(__name__)
 _SCAN_INTERVAL = timedelta(seconds=60)
+
+# Valt de kamer- of buitensensor weg, dan rekent de integratie eerst niet en
+# houdt de ESP het laatste setpoint vast (een korte hapering mag het setpoint
+# niet laten verspringen). Duurt het langer dan dit, dan rekent ze door met
+# een terugval, zodat het setpoint het weer blijft volgen.
+_SENSOR_GRACE = timedelta(minutes=15)
+_FALLBACK_ROOM = "kamersensor weg: zonder kamercompensatie"
+_FALLBACK_OUTDOOR = "buitensensor weg: temperatuur uit weer-entiteit"
+# Begin van de uitval per (entry, sensor). Op moduleniveau, zodat de tijd
+# doorloopt als HA de integratie na een mislukte start opnieuw probeert.
+_unavailable_since: dict[tuple[str, str], datetime] = {}
 
 
 class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -100,6 +113,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Stookgrens-hysterese: onthoudt of verwarmen nu is toegestaan.
         # None = onbekend (na start of buiten HEAT) → bepaald op de stookgrens.
         self._heating_allowed: bool | None = None
+        self._fallback_logged: str | None = None
 
     @property
     def entry(self) -> ConfigEntry:
@@ -132,12 +146,32 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 heatpump_status = state.state
 
         outdoor_temp = self._read_sensor(outdoor_sensor)
-        room_temp = self._read_sensor(room_sensor)
+        room_temp: float | None = self._read_sensor(room_sensor)
+        fallbacks: list[str] = []
 
-        if outdoor_temp is None:
-            raise UpdateFailed(f"Buitentemperatuursensor {outdoor_sensor} niet beschikbaar")
-        if room_temp is None:
+        if outdoor_temp is not None:
+            self._sensor_ok("outdoor")
+        else:
+            if self._grace_expired("outdoor"):
+                outdoor_temp = self._weather_temperature(weather_entity)
+            if outdoor_temp is None:
+                raise UpdateFailed(f"Buitentemperatuursensor {outdoor_sensor} niet beschikbaar")
+            fallbacks.append(_FALLBACK_OUTDOOR)
+
+        if room_temp is not None:
+            self._sensor_ok("room")
+        elif self._grace_expired("room"):
+            fallbacks.append(_FALLBACK_ROOM)
+        else:
             raise UpdateFailed(f"Kamertemperatuursensor {room_sensor} niet beschikbaar")
+
+        fallback = "; ".join(fallbacks) or None
+        if fallback != self._fallback_logged:
+            if fallback:
+                _LOGGER.warning("Terugval actief: %s", fallback)
+            else:
+                _LOGGER.info("Sensoren weer beschikbaar; terugval opgeheven")
+            self._fallback_logged = fallback
 
         # Instellingen ophalen (met standaardwaarden als terugval)
         target_temp: float = self._opt(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP)
@@ -172,6 +206,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 KEY_HVAC_MODE: hvac_mode,
                 KEY_EFFECTIVE_MODE: HVAC_MODE_OFF,
                 KEY_HEATPUMP_STATUS: heatpump_status,
+                KEY_FALLBACK: fallback,
             }
 
         # HEAT: stooklijn-berekening (enige actieve modus naast OFF)
@@ -191,7 +226,11 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.learning.async_load()
         adjusted_curve = self.learning.apply_offsets(curve_points)
         t_stooklijn = calculate_heating_curve(outdoor_temp, adjusted_curve)
-        t_kamer_comp = calculate_room_compensation(target_temp, room_temp, factor)
+        t_kamer_comp = (
+            calculate_room_compensation(target_temp, room_temp, factor)
+            if room_temp is not None
+            else 0.0
+        )
 
         # Module 2: Weersvoorspelling
         t_windchill, t_zon = 0.0, 0.0
@@ -232,7 +271,8 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 category = self._price_class[1]
             t_prijs = calculate_price_correction(
                 category,
-                room_temp,
+                # Kamer onbekend: reken alsof ze op het doel zit.
+                room_temp if room_temp is not None else target_temp,
                 target_temp,
                 max_price_corr,
                 cheap_delta=cheap_delta,
@@ -247,17 +287,19 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if setpoint_entity:
             await self._async_write_setpoint(setpoint_entity, t_definitief)
 
-        # Voer leerstap uit (observeren + eens per uur leren) — alleen in HEAT.
-        await self.learning.async_tick(
-            outdoor_temp=outdoor_temp,
-            room_temp=room_temp,
-            target_temp=target_temp,
-            curve_points=curve_points,
-            learning_rate=learning_rate,
-            heatpump_status=heatpump_status,
-            flow_setpoint=t_definitief,
-            clamped=clamped,
-        )
+        # Voer leerstap uit (observeren + eens per uur leren) — alleen in HEAT
+        # en alleen met echte sensorwaarden.
+        if room_temp is not None and not fallbacks:
+            await self.learning.async_tick(
+                outdoor_temp=outdoor_temp,
+                room_temp=room_temp,
+                target_temp=target_temp,
+                curve_points=curve_points,
+                learning_rate=learning_rate,
+                heatpump_status=heatpump_status,
+                flow_setpoint=t_definitief,
+                clamped=clamped,
+            )
 
         return {
             KEY_OUTDOOR_TEMP: outdoor_temp,
@@ -274,6 +316,7 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             KEY_HVAC_MODE: hvac_mode,
             KEY_EFFECTIVE_MODE: HVAC_MODE_HEAT,
             KEY_HEATPUMP_STATUS: heatpump_status,
+            KEY_FALLBACK: fallback,
         }
 
     def _update_heating_allowed(
@@ -291,6 +334,29 @@ class WeheatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif not self._heating_allowed and outdoor_temp < stookgrens - hysterese:
             self._heating_allowed = True
         return self._heating_allowed
+
+    def _grace_expired(self, sensor: str) -> bool:
+        """True als deze sensor langer dan _SENSOR_GRACE onbeschikbaar is."""
+        now = dt_util.utcnow()
+        since = _unavailable_since.setdefault((self._entry.entry_id, sensor), now)
+        return now - since >= _SENSOR_GRACE
+
+    def _sensor_ok(self, sensor: str) -> None:
+        """De sensor levert weer een waarde: uitval vergeten."""
+        _unavailable_since.pop((self._entry.entry_id, sensor), None)
+
+    def _weather_temperature(self, weather_entity: str | None) -> float | None:
+        """Huidige temperatuur (°C) van de weer-entiteit, als die er is."""
+        if not weather_entity:
+            return None
+        state = self.hass.states.get(weather_entity)
+        if state is None or state.state in ("unknown", "unavailable", ""):
+            return None
+        try:
+            temp = float(state.attributes.get("temperature"))
+        except (TypeError, ValueError):
+            return None
+        return to_celsius(temp, state.attributes.get("temperature_unit") or "°C")
 
     def _read_sensor(self, entity_id: str) -> float | None:
         """Lees de numerieke waarde van een sensor; geeft None bij onbeschikbaar."""

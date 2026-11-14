@@ -14,5 +14,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/FutureCow/ha-setpoint-heating/issues",
   "requirements": [],
-  "version": "2.4.0"
+  "version": "2.5.0"
 }

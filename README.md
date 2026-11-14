@@ -303,6 +303,13 @@ De integratie leest de komende prijzen uit een attribuut van de prijssensor. Dat
 
 Controleer het in het attribuut `prijs_correctie` van de aanvoersetpoint-sensor: bij een werkende koppeling wisselt het over de dag tussen −2, 0 en +2.
 
+### Wat als een temperatuursensor wegvalt?
+
+- **Eerste 15 minuten:** de integratie rekent niet en de ESP houdt het laatste setpoint vast. Een korte hapering (bv. Bluetooth) laat het setpoint zo niet verspringen.
+- **Daarna, kamersensor weg:** de integratie rekent door zonder kamercompensatie. Het setpoint blijft het weer volgen.
+- **Daarna, buitensensor weg:** de integratie gebruikt de huidige temperatuur van de weer-entiteit. Is er geen weer-entiteit, dan blijft het laatste setpoint staan.
+- Zolang de terugval actief is, leert de stooklijn niet. Het attribuut `terugval` van de aanvoersetpoint-sensor en een waarschuwing in het log laten zien dat het speelt.
+
 ### Wat als ESPHome geen verbinding heeft met HA?
 
 In de [meegeleverde YAML](esphome/weheat-opentherm-bridge.yaml) zit `filter_out: nan` waardoor het laatste geldige setpoint behouden blijft. De CV-schakelaar reageert alleen op de modus `heat` of `off`; bij `unavailable` (bv. terwijl HA herstart) blijft de laatste stand staan, zodat de warmtepomp niet even uitgaat. Het OpenTherm-protocol heeft zelf ook een fallback (boiler valt terug op interne logica bij signaal-verlies).
