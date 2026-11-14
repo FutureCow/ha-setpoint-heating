@@ -203,6 +203,7 @@ De integratie leert over weken automatisch je 5 stooklijn-punten bij te slijpen 
 - Offsets begrensd op ±5°C, oude data vervalt na 7 dagen
 - Auto-reset bij handmatige curve-wijziging (buiten- of aanvoerwaarde)
 - Niet leren als het setpoint al op de minimale of maximale aanvoertemperatuur staat
+- Niet leren terwijl de warmtepomp tapwater maakt (`dhw` of `legionella_prevention`, alleen met gekoppelde status-sensor)
 
 **Stabiliteitseisen** (voorkomt leren van verkeerde signalen):
 - Geen doeltemperatuur-wijziging in laatste 60 min

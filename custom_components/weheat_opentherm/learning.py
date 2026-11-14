@@ -24,6 +24,9 @@ _STABLE_OUTDOOR_RATE = 1.0        # °C/uur — max buitentemp-veranderingssnelh
 _OUTDOOR_REF_INTERVAL = timedelta(minutes=10)
 _SAVE_DEBOUNCE = 300              # seconden — debounce voor disk writes
 _PUMP_HEATING_STATE = "heating"   # state van de WeHeat status-sensor bij verwarmen
+# Pomp maakt tapwater: de kamer krijgt dan geen warmte, maar dat ligt niet aan
+# de stooklijn. Tijdens deze standen wordt niets gemeten, in beide richtingen.
+_PUMP_SKIP_STATES = frozenset({"dhw", "legionella_prevention"})
 
 
 class LearningEngine:
@@ -33,7 +36,7 @@ class LearningEngine:
       1. Elke coordinator-tick: indien stabiel (geen doeltemp-wijziging, trage
          buitentemp), bewaar (kamer_error) in de bucket van afgeronde buitentemp.
          Te warm terwijl de pomp niet verwarmt telt niet: dat komt door zon of
-         weer, niet door de stooklijn.
+         weer, niet door de stooklijn. Tijdens tapwater telt niets mee.
       2. Eén keer per uur: per curve-punt het dichtstbijzijnde bucket bekijken,
          en bij persistente afwijking >0.3°C de offset met learning_rate aanpassen.
       3. Offsets begrensd op ±5°C t.o.v. originele curve.
@@ -162,8 +165,10 @@ class LearningEngine:
             pump_not_heating or setpoint_below_room
         )
         against_limit = (error > 0 and clamped > 0) or (error < 0 and clamped < 0)
+        making_hot_water = heatpump_status in _PUMP_SKIP_STATES
         if (
-            outdoor_stable
+            not making_hot_water
+            and outdoor_stable
             and target_stable
             and not overheated_without_heating
             and not against_limit
