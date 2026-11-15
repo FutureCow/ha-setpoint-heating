@@ -1,6 +1,6 @@
 # Behuizing OpenTherm-bridge
 
-Doosje voor een **ESP32-C6-DevKitC-1** (origineel van Espressif) en de
+Doosje voor een **ESP32-C6-DevKitC-1** (origineel van Espressif) of een **ESP32-C6 SuperMini**, samen met de
 **[OpenTherm-adapter van Ihor Melnyk](https://ihormelnyk.com/opentherm_adapter)**, verbonden met losse dupont-draadjes.
 
 Buitenmaat 66 × 59,5 × 39,5 mm (met deksel).
@@ -12,19 +12,29 @@ Buitenmaat 66 × 59,5 × 39,5 mm (met deksel).
 | `behuizing.step` | bak + deksel in montagestand, voor CAD |
 | `behuizing.py` | het parametrische model (FreeCAD) |
 
-## Twee versies
+## Drie versies
 
-| | Naast elkaar | Onder elkaar (gestapeld) |
-|---|---|---|
-| Buitenmaat | 66 × 59,5 × 39,5 mm | 66 × 33,5 × 43 mm |
-| Bestanden | `bak.stl`, `deksel.stl`, `behuizing.step`, `behuizing.py` | `bak-gestapeld.stl`, `deksel-gestapeld.stl`, `behuizing-gestapeld.step`, `behuizing_gestapeld.py` |
-| DevKit-stekkers | op alle pinnen | alleen op de 3V3-pinrij (3V3, G, GPIO10, GPIO11) |
-| OT-kabel | kopse wand aan de antennekant | lange voorwand, naast de adapter |
+| | DevKitC-1 naast elkaar | DevKitC-1 onder elkaar (gestapeld) | SuperMini naast elkaar |
+|---|---|---|---|
+| Buitenmaat | 66 × 59,5 × 39,5 mm | 66 × 33,5 × 43 mm | 38 × 46,4 × 37,5 mm |
+| Bestanden | `bak.stl`, `deksel.stl`, `behuizing.step`, `behuizing.py` | `bak-gestapeld.stl`, `deksel-gestapeld.stl`, `behuizing-gestapeld.step`, `behuizing_gestapeld.py` | `bak-supermini.stl`, `deksel-supermini.stl`, `behuizing-supermini.step`, `behuizing_supermini.py` |
+| ESP-stekkers | op alle pinnen | alleen op de 3V3-pinrij (3V3, G, GPIO10, GPIO11) | alleen op de rij met 5V/GND/3V3 |
+| OT-kabel | kopse wand aan de antennekant | lange voorwand, naast de adapter | kopse wand tegenover de USB |
 
 De gestapelde versie zet de adapter onderin (pinnen omhoog, aan de USB-kant) en de DevKit erboven op 26 mm.
 Daartussen zitten de rechte dupont-stekkers van de adapter (16,5 mm) plus 5,4 mm om de draadjes te buigen.
 Eerst de adapter plaatsen en aansluiten, dan de DevKit erop. Met haakse pinheaders of gesoldeerde draadjes
 kan `WIRE_BEND`/`DUPONT_UP` omlaag en wordt het doosje 12–15 mm lager.
+
+## SuperMini-versie
+- **Pinheaders aan de onderkant** solderen (pinnen omlaag). Alleen de rij met 5V/GND/3V3 krijgt dupont-stekkers;
+  die rij zit aan de kant van de adapter. Op de andere rij (TX/RX/0–7) mogen headers zitten, maar geen stekkers.
+- De SuperMini heeft geen GPIO10/11. Gebruik twee pinnen op dezelfde rij, bijvoorbeeld GPIO19 en GPIO20, en zet
+  `in_pin`/`out_pin` in de ESPHome-YAML daarop. Vermijd de strapping-pinnen 8, 9 en 15. De RGB-LED zit ook hier op GPIO8.
+- De print rust op twee pijlers tussen de pinrijen; de headers aan weerszijden houden hem op zijn plek.
+  Een aanslag aan het eind en de USB-opening houden hem in de lengte, een vinger in het deksel drukt op de chip.
+- De maten van de SuperMini komen uit een productfoto met maatpijlen (±0,3 mm). Klonen verschillen onderling:
+  meet de plek van de USB-C-bus en de RGB-LED na voor je print (`USB_T`, `LED_S`/`LED_T` in `behuizing_supermini.py`).
 
 ## Printen
 - PLA of PETG, 0,2 mm laag, 3 wanden, geen support nodig (de USB-openingen hebben ronde hoeken
