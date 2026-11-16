@@ -192,17 +192,20 @@ De secrets hebben dezelfde namen als bij de bridge. De helderheid van het scherm
 | Module | Bestand | Doel |
 |---|---|---|
 | **Stooklijn** | `heating_curve.py` | 5 instelbare (buitentemp → aanvoertemp) punten met lineaire interpolatie + kamercompensatie (±5°C) |
-| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; alleen het verschil boven dat bij 10 km/h telt, want de stooklijn bevat gewone wind al; tussen 10 en 13°C lineair afgebouwd; de helft daarvan telt als kouder buiten, via de helling van de ingestelde stooklijn zonder geleerde offsets omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster. Zon bij voorkeur uit **Forecast.Solar** (automatisch, zie hieronder), anders uit het weertype (alleen uren met de zon > 5° boven de horizon) |
+| **Weer** | `weather_module.py` | Windchill (JAG/TI-gevoelstemperatuur; alleen het verschil boven dat bij 10 km/h telt, want de stooklijn bevat gewone wind al; tussen 10 en 13°C lineair afgebouwd; de helft daarvan telt als kouder buiten, via de helling van de ingestelde stooklijn zonder geleerde offsets omgerekend naar aanvoer, +0…4°C) + zoncorrectie (−0…4°C) over instelbaar vooruitkijkvenster. Zon bij voorkeur uit de **PV-prognose van het energiedashboard** (automatisch, zie hieronder), anders uit het weertype (alleen uren met de zon > 5° boven de horizon) |
 | **Prijs** | `energy_prices.py` | Vergelijkt de huidige prijs met de komende 24 uur. Meer dan een halve standaardafwijking onder het gemiddelde is goedkoop → voorverwarmen (standaard +2 °C, alleen als de kamer minder dan 1,5 °C boven het doel zit); meer dan een halve erboven is duur → bezuinigen (standaard −2 °C). Eén indeling per prijsperiode: een ververste prijslijst halverwege het uur verandert de indeling niet |
 
-### Zoncorrectie via Forecast.Solar (optioneel, automatisch)
+### Zoncorrectie via de PV-prognose (optioneel, automatisch)
 
-Is de HA-integratie **Forecast.Solar** ingesteld, dan gebruikt de zoncorrectie per uur de opbrengstprognose in plaats van het weertype — dezelfde uurprognose als in het energiedashboard, opgeteld over alle Forecast.Solar-entries en -vlakken.
+Staat er bij de zonnepanelen in het energiedashboard een prognose (*Prognose productie*), dan gebruikt de zoncorrectie per uur die opbrengstprognose in plaats van het weertype. Het is dezelfde uurprognose die het dashboard toont, opgeteld over alle gekozen prognoses (elke prognose één keer, ook als hij bij meer bronnen staat).
+
+- Ondersteund: **Forecast.Solar** (kWp uit de vlakken) en **Solar Forecast ML** (kWp uit de vlakgroepen). Van andere integraties is het piekvermogen niet bekend; die worden overgeslagen.
+- Staat er geen prognose in het energiedashboard, dan tellen alle Forecast.Solar-entries, zoals vóór v2.6.0.
 
 - Fractie volle zon = verwachte kWh in dat uur ÷ kWp ÷ 0,6 (max 1); correctie = fractie × *zonnig*-instelling.
-- Werkt ook als de Forecast.Solar-sensoren tijdelijk `unavailable` zijn: de laatst opgehaalde prognose blijft gebruikt.
+- Werkt ook als de sensoren van de prognose tijdelijk `unavailable` zijn: de laatst opgehaalde prognose blijft gebruikt.
 - Dekt de prognose een uur niet (bv. verouderd), dan valt dat uur terug op het weertype.
-- Welke bron gebruikt is staat in het attribuut `zon_bron` van de aanvoersetpoint-sensor (`forecast.solar`, `weer` of `gemengd`).
+- Welke bron gebruikt is staat in het attribuut `zon_bron` van de aanvoersetpoint-sensor (`pv-prognose`, `weer` of `gemengd`; tot v2.6.0 heette `pv-prognose` `forecast.solar`).
 
 ### Adaptieve laag
 
@@ -291,7 +294,7 @@ De aanvoersetpoint-sensor heeft attributen die laten zien hoe het setpoint is op
 | Attribuut | Wat |
 |---|---|
 | `formule` | De hele som in één regel, bv. `25.04 (stooklijn) -0.24 (kamer) +0.01 (windchill) -0.00 (zon) 0.00 (prijs) = 24.81 ≈ 24.8` |
-| `zon_bron` | `forecast.solar`, `weer` of `gemengd` |
+| `zon_bron` | `pv-prognose`, `weer` of `gemengd` |
 | `begrensd` | `true` als het setpoint op de minimale of maximale aanvoertemperatuur is afgekapt |
 | `terugval` | Tekst als een temperatuursensor is weggevallen, anders leeg |
 | `geleerde_offset_totaal` | Som van de vijf geleerde offsets |

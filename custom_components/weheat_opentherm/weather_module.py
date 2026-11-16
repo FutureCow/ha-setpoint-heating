@@ -27,7 +27,7 @@ _MAX_SUN_CORRECTION = 4.0  # °C
 # 's nachts gebruikt wordt (alleen "sunny" heeft een nachtvariant).
 _SUN_MIN_ELEVATION = 5.0  # graden
 
-SUN_SOURCE_PV = "forecast.solar"
+SUN_SOURCE_PV = "pv-prognose"
 SUN_SOURCE_WEATHER = "weer"
 SUN_SOURCE_MIXED = "gemengd"
 
@@ -113,7 +113,7 @@ async def async_get_forecast_corrections(
 ) -> tuple[float, float, str | None]:
     """Haal weersvoorspelling op en bereken correcties voor het opgegeven venster.
 
-    De zoncorrectie per uur komt bij voorkeur uit de Forecast.Solar-prognose
+    De zoncorrectie per uur komt bij voorkeur uit de PV-prognose van het energiedashboard
     (fractie van volle zon × sun_sunny); valt die weg, dan uit het weertype.
 
     Args:
