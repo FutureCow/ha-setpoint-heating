@@ -31,6 +31,7 @@ LIP_CLR = 0.25
 RIDGE_R = 0.6
 GROOVE_D = 0.7
 GROOVE_Z = H - LIP_H / 2
+GROOVE_PRESS = 0.1  # ribbel drukt zoveel in de schuine bovenkant van de groef (0 = net geen speling)
 
 # ---------------------------------------------------------------- OT-adapter (onderin)
 AD_W, AD_LEN, AD_T = 20.2, 25.5, 1.6   # a-richting (over y), b-richting (over x)
@@ -48,7 +49,7 @@ def ad(a, b):
 
 
 # ---------------------------------------------------------------- DevKitC-1 (erboven)
-DK_X = 1.0
+DK_X = 0.6          # bussen 0,2 van de wand; aanslag 0,1, lipjes 0,15 speling
 DK_Y = 2.0          # u=25,4-rand (G/TX/RX-rij) van de print
 DK_ZB = AD_ZB + AD_T + DUPONT_UP + WIRE_BEND   # = 26,0
 DK_LEN, DK_WID, DK_T = 51.8, 25.4, 1.6
@@ -103,11 +104,27 @@ def wedge_y(x, y_face, z_low, length, depth, height, inward, straight=0.6):
     return Part.Face(Part.makePolygon(p)).extrude(V(length, 0, 0))
 
 
+def groove():
+    """Groef voor de klikribbels. De bovenkant loopt 45 graden schuin: de verende rand van het deksel duwt de
+    ribbel tegen die schuinte en trekt het deksel zo omlaag op de rand. Daardoor geen speling op en neer,
+    ook niet als de print een tiende afwijkt. GROOVE_PRESS = hoeveel de ribbel de schuinte in drukt."""
+    zc, d = GROOVE_Z, GROOVE_D
+    z_t = zc - LIP_CLR - d + (RIDGE_R - GROOVE_PRESS) * 2 ** 0.5
+    low = rbox(-d, -d, zc - 0.8, L + 2 * d, W + 2 * d, z_t - (zc - 0.8), R_IN + d)
+
+    def wire(off, z):
+        f = rbox(-off, -off, z, L + 2 * off, W + 2 * off, 1, R_IN + off)
+        return [fc for fc in f.Faces if fc.BoundBox.ZMax < z + 1e-6][0].OuterWire
+
+    top = Part.makeLoft([wire(d, z_t), wire(-0.05, z_t + d + 0.05)], True, True)
+    return low.fuse(top).removeSplitter()
+
+
 # ================================================================= bak
 def make_box():
     s = rbox(-WALL, -WALL, -FLOOR, L + 2 * WALL, W + 2 * WALL, FLOOR + H, R_OUT)
     s = s.cut(rbox(0, 0, 0, L, W, H + 1, R_IN))
-    s = s.cut(rbox(-GROOVE_D, -GROOVE_D, GROOVE_Z - 0.8, L + 2 * GROOVE_D, W + 2 * GROOVE_D, 1.6, R_IN + GROOVE_D))
+    s = s.cut(groove())
     s = s.cut(box(L / 2 - 5, -WALL - 0.1, H - 1.5, 10, 1.1, 1.6))   # wrikinkeping
 
     usb_z = DK_ZB + DK_T + 1.6
@@ -132,13 +149,13 @@ def make_box():
     x0, x1 = DK_X + 0.5, DK_X + 9.0
     y_lo, y_hi = DK_Y, DK_Y + DK_WID
     s = s.fuse(box(x0, y_lo - 1.5, 0, x1 - x0, 7.5, DK_ZB))
-    s = s.fuse(box(x0, y_lo - 1.5, DK_ZB, x1 - x0, 1.2, 1.5))
+    s = s.fuse(box(x0, y_lo - 1.35, DK_ZB, x1 - x0, 1.2, 1.5))
     s = s.fuse(box(x0, y_hi - 6.0, 0, x1 - x0, 7.5, DK_ZB))
-    s = s.fuse(box(x0, y_hi + 0.3, DK_ZB, x1 - x0, 1.2, 1.5))
+    s = s.fuse(box(x0, y_hi + 0.15, DK_ZB, x1 - x0, 1.2, 1.5))
     ax0, ay1 = dk(18.4, 44.0)
     _, ay0 = dk(7.0, 0)
     s = s.fuse(box(ax0, ay1, 0, 6.0, ay0 - ay1, DK_ZB))
-    sx = DK_X + DK_LEN + 0.3
+    sx = DK_X + DK_LEN + 0.1
     s = s.fuse(box(sx, y_lo + 0.3, 0, 3.0, DK_WID - 0.6, 3.0))
     for yy in (y_lo + 0.3, y_hi - 3.3):
         s = s.fuse(box(sx, yy, 0, 3.0, 3.0, DK_ZB + 2.5))

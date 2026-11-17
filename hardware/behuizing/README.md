@@ -61,7 +61,12 @@ Alle maten staan bovenaan `behuizing.py`. Opnieuw genereren:
 ```
 
 Belangrijkste knoppen: `DK_ZB` (ruimte onder de DevKit), `USB_PORTS` (haal de poort weg die je niet gebruikt),
-`OT_D` (kabeldikte), `LIP_CLR` en `RIDGE_R` (hoe strak het deksel klikt), `SCREWS` (posities ophanggaten).
+`OT_D` (kabeldikte), `LIP_CLR` en `RIDGE_R` (hoe zwaar het deksel klikt), `GROOVE_PRESS` (hoe hard het deksel
+omlaag wordt getrokken), `SCREWS` (posities ophanggaten).
+
+De groef heeft een schuine bovenkant: de verende rand drukt de klikribbel daartegen, zodat het deksel strak op de rand
+ligt zonder speling op en neer. Gaat het deksel niet helemaal dicht, zet `GROOVE_PRESS` dan op 0,05; zit er nog speling,
+op 0,15. De ESP-print heeft 0,1–0,15 mm speling bij de aanslag en de lipjes.
 
 De maten van de DevKit komen uit de DXF-tekening van Espressif (v1.2). Die van de adapter zijn afgeleid uit de
 PCB-afbeelding op de site van Ihor Melnyk, met het 2,54-mm-raster van de headers als maatstaf.

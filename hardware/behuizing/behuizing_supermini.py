@@ -36,6 +36,7 @@ LIP_CLR = 0.25
 RIDGE_R = 0.6
 GROOVE_D = 0.7
 GROOVE_Z = H - LIP_H / 2
+GROOVE_PRESS = 0.1  # ribbel drukt zoveel in de schuine bovenkant van de groef (0 = net geen speling)
 
 # ---------------------------------------------------------------- SuperMini
 SM_LEN, SM_WID, SM_T = 26.0, 18.0, 1.6
@@ -109,11 +110,27 @@ def wedge_y(x, y_face, z_low, length, depth, height, inward, straight=0.6):
     return Part.Face(Part.makePolygon(p)).extrude(V(length, 0, 0))
 
 
+def groove():
+    """Groef voor de klikribbels. De bovenkant loopt 45 graden schuin: de verende rand van het deksel duwt de
+    ribbel tegen die schuinte en trekt het deksel zo omlaag op de rand. Daardoor geen speling op en neer,
+    ook niet als de print een tiende afwijkt. GROOVE_PRESS = hoeveel de ribbel de schuinte in drukt."""
+    zc, d = GROOVE_Z, GROOVE_D
+    z_t = zc - LIP_CLR - d + (RIDGE_R - GROOVE_PRESS) * 2 ** 0.5
+    low = rbox(-d, -d, zc - 0.8, L + 2 * d, W + 2 * d, z_t - (zc - 0.8), R_IN + d)
+
+    def wire(off, z):
+        f = rbox(-off, -off, z, L + 2 * off, W + 2 * off, 1, R_IN + off)
+        return [fc for fc in f.Faces if fc.BoundBox.ZMax < z + 1e-6][0].OuterWire
+
+    top = Part.makeLoft([wire(d, z_t), wire(-0.05, z_t + d + 0.05)], True, True)
+    return low.fuse(top).removeSplitter()
+
+
 # ================================================================= bak
 def make_box():
     s = rbox(-WALL, -WALL, -FLOOR, L + 2 * WALL, W + 2 * WALL, FLOOR + H, R_OUT)
     s = s.cut(rbox(0, 0, 0, L, W, H + 1, R_IN))
-    s = s.cut(rbox(-GROOVE_D, -GROOVE_D, GROOVE_Z - 0.8, L + 2 * GROOVE_D, W + 2 * GROOVE_D, 1.6, R_IN + GROOVE_D))
+    s = s.cut(groove())
     s = s.cut(box(L / 2 - 5, -WALL - 0.1, H - 1.5, 10, 1.1, 1.6))   # wrikinkeping
 
     # USB-C-opening in de kopse wand x=0
@@ -140,7 +157,7 @@ def make_box():
     for s0 in (3.0, 19.0):
         x0, _ = sm(s0, 0)
         s = s.fuse(box(x0, y_lo, 0, 4.0, y_hi - y_lo, SM_ZB))
-    sx, _ = sm(SM_LEN + 0.3, 0)
+    sx, _ = sm(SM_LEN + 0.15, 0)
     s = s.fuse(box(sx, y_lo, 0, 3.0, y_hi - y_lo, SM_ZB + 2.5))
 
     # ---- OT-adapter: pen in het montagegat, hoekpootjes, twee klikhaken
